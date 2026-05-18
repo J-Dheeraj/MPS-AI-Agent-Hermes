@@ -1,138 +1,155 @@
 ---
 name: mps-policy-cpf
-description: CPF accounts, OW ceiling, retirement sums, withdrawal at 55, MediSave, CPF LIFE, MRSS for Singapore MPS casework
+description: CPF accounts, withdrawal rules, CPF LIFE, MediSave, MRSS, housing CPF usage, 2026 changes for Singapore MPS casework
 triggers:
   - CPF
-  - Central Provident Fund
-  - CPF withdrawal
+  - withdrawal
   - MediSave
-  - retirement sum
-  - CPF LIFE
-  - ordinary account
-  - CPF OA
-  - CPF housing
   - MRSS
+  - OA
+  - SA
+  - RA
+  - CPF LIFE
+  - retirement sum
+  - CPF housing
+  - top-up
+  - Workfare
+  - CPF appeal
 ---
 
-# SKILL-cpf — Central Provident Fund Board
+# CPF Policy Reference — MPS Casework (2025/2026)
 
-## Agency contact
+## Account structure
 
-**Central Provident Fund Board (CPF Board)**  
-Official: www.cpf.gov.sg  
-Member hotline: 1800-227-1188  
-Online: my.cpf.gov.sg (login required for member details)
-
----
-
-## CPF account types
-
-| Account | Purpose | Rate (approx 2025/2026) |
+| Account | Purpose | Interest rate (approx) |
 |---|---|---|
-| Ordinary Account (OA) | Housing, education, investment | Up to 3.5% (first $20k) |
-| Special Account (SA) | Retirement savings | Up to 5% (first $40k) |
-| MediSave Account (MA) | Medical expenses | Up to 5% |
-| Retirement Account (RA) | Formed at 55 from OA + SA | Up to 5% |
+| Ordinary Account (OA) | Housing, education, investment | ~2.5% p.a. |
+| Special Account (SA) | Retirement savings | ~4% p.a. |
+| MediSave Account (MA) | Healthcare expenses | ~4% p.a. |
+| Retirement Account (RA) | Formed at age 55 from OA + SA | ~4% p.a. |
 
-Interest rates: confirmed quarterly by CPF Board. Always verify before citing in a letter.
-
----
-
-## Ordinary Wage (OW) ceiling
-
-- **From 1 January 2026: $8,000/month** (up from $7,400/month in 2025)
-- CPF contributions are calculated on wages up to this ceiling
-- Wages above the ceiling are not subject to CPF
+*Exact rates updated quarterly. Check cpf.gov.sg for current quarter figures.*
 
 ---
 
-## Retirement sum amounts (indicative — verify current year)
+## 2026 key changes
 
-| Sum | Purpose |
-|---|---|
-| Basic Retirement Sum (BRS) | Minimum; paired with property pledge |
-| Full Retirement Sum (FRS) | Twice BRS; full monthly CPF LIFE payouts |
-| Enhanced Retirement Sum (ERS) | Three times BRS; higher monthly payouts |
-
-At 55: CPF transfers OA + SA balances to Retirement Account, setting aside FRS (or BRS with property pledge). Balance above the retirement sum can be withdrawn.
+- **OW ceiling raised:** $8,000/month from January 2026 (up from $7,400 in 2025)
+- **Contribution rates ages 55–65:** Increased by 1.5 percentage points (employer + employee)
+- **MRSS expanded:** Now covers Singaporeans with disabilities of **all ages** (previously capped at age 70)
+- **MediSave outpatient scan limit:** Doubled to $600/year from January 2026
+- **MediSave for fertility:** Extended to cover embryo/egg/ovarian tissue freezing surgical costs from June 2026
 
 ---
 
-## Withdrawal at 55
+## Withdrawal rules — the most common MPS question
 
-- Eligible to withdraw savings above the FRS (or BRS if pledging property)
-- Cannot withdraw if OA + SA balance is below FRS and no property pledge
-- **Common MPS case:** constituent believes they have savings but cannot withdraw — usually because balance does not meet FRS. Verify before drafting letter.
-- Write to: Head, Withdrawals, Central Provident Fund Board
+### At age 55
+
+- CPF Board forms the Retirement Account (RA) from OA + SA balances
+- Member can withdraw **only the amount above the Full Retirement Sum (FRS)**
+- If property is pledged: can withdraw above the Basic Retirement Sum (BRS)
+- If RA balance is below FRS/BRS: no cash withdrawal — all goes into RA for CPF LIFE
+
+### Full Retirement Sum (FRS) and Basic Retirement Sum (BRS)
+
+- FRS and BRS amounts are adjusted annually (cohort-based)
+- Check cpf.gov.sg/member/retirement-income for current year's sums
+- **BRS:** roughly half of FRS; requires property pledge to use lower sum
+- **Enhanced Retirement Sum (ERS):** 3× BRS; voluntary top-up for higher CPF LIFE payout
+
+### After 55 — drawdown age
+
+- CPF LIFE payouts begin at age 65 (default)
+- Members can defer to age 70 for higher monthly payouts
+
+### Common MPS scenario — constituent cannot withdraw CPF at 55
+
+Likely cause: OA + SA balance does not exceed the FRS (or BRS + pledge). Action: MP letter is rarely effective here — this is a legislative rule. Better approach: explain the rule to the constituent and advise on options (property pledge for BRS, deferring payout, MRSS top-up).
 
 ---
 
-## CPF LIFE (Lifelong Income for the Elderly)
+## CPF LIFE (Lifelong Income For the Elderly)
 
-- Mandatory annuity scheme for members who turn 55 from 2013 onwards
-- Monthly payouts begin at payout eligibility age (currently 65, gradual increase to 65)
-- Payout amount depends on RA balance at payout age and plan chosen
-- Plans: Standard, Basic, Escalating
+- Mandatory annuity scheme for members with RA balance at 55
+- Monthly payouts for life regardless of how long the member lives
+- **Plans:**
+  - Standard Plan: higher monthly payouts, lower bequest
+  - Basic Plan: lower monthly payouts, higher bequest (for dependants)
+  - Escalating Plan: starts lower, increases 2% p.a. to hedge inflation
+- **Default:** Standard Plan
+- Members can switch plans before payouts begin
 
 ---
 
 ## MediSave
 
-- Used for: hospitalisation, day surgery, outpatient treatments (selected conditions), approved insurance premiums
-- **MediSave outpatient scan limit: $600/year (doubled in 2026, up from $300)**
-- MediSave can pay: MediShield Life premiums, CareShield Life premiums, Integrated Shield Plan premiums (restricted amount)
-- Basic Healthcare Sum (BHS): the cap on MediSave savings that attract full interest — check CPF website for current year figure
+- Covers hospitalisation, approved outpatient treatments, approved scans
+- **2026 outpatient scan limit:** $600/year (up from $300)
+- **2026 fertility coverage:** Egg freezing surgical costs (from June 2026)
+- **MediSave for premiums:** Can use MA to pay MediShield Life and CareShield Life premiums
+- **Common MPS case:** MediSave claim rejected for outpatient treatment
+  **Action:** MP letter to CPF Board requesting review; attach doctor's memo stating medical necessity
 
 ---
 
-## MediSave Return Subsidy Scheme (MRSS)
+## Matched Retirement Savings Scheme (MRSS)
 
-- **Expanded in 2026 to cover Singaporeans with disabilities of all ages** (previously limited to lower-age cohorts)
-- Provides MediSave top-ups to help cover healthcare expenses for those with disabilities
-- Verify current eligibility criteria with CPF Board before citing specifics
-
----
-
-## CPF Housing (OA for flat purchase)
-
-- OA funds can be used to pay for HDB flats (new and resale) and private property
-- Accrued interest on OA funds used for housing must be returned to CPF upon sale
-- **Common misconception:** constituents sometimes believe they can use OA freely — in fact, the CPF charge (principal + accrued interest) is deducted from sale proceeds first
+- Government matches cash top-ups to RA, dollar for dollar
+- **Cap:** $600 government matching per year
+- **2026 eligibility:** Singaporeans with disabilities of all ages (previously: Singapore citizens aged 55–70 with low income)
+- **Income threshold:** Gross annual income ≤$22,500 OR Annual Value of home ≤$13,000
+- **How to claim:** Top up the RA via CPF website; matching paid automatically
+- **Common MPS case:** Constituent unaware of MRSS, or was incorrectly assessed as ineligible
+- **Action:** Direct to CPF website; if rejected, MP letter requesting review
 
 ---
 
-## Common MPS cases
+## Using CPF OA for housing
 
-### Cannot withdraw CPF at 55
-
-- Check: does balance exceed FRS? If not, no withdrawal unless BRS + property pledge
-- Write to: Head, Withdrawals, Central Provident Fund Board
-- Include: NRIC, amount constituent wishes to withdraw, reason
-
-### CPF not received / employer not contributing
-
-- Employer must contribute CPF on wages up to the OW ceiling
-- If employer not contributing: constituent must first report to CPF Board directly or through TADM
-- MP letter is appropriate if constituent has reported and no action has been taken
-
-### MediSave not sufficient for medical bills
-
-- MediFund is the safety net for hospital bills (write to MOH / hospital)
-- CHAS subsidises GP and specialist outpatient visits
-
-### CPF LIFE payout amount lower than expected
-
-- This is not appealable — payouts are actuarially determined by RA balance
-- MP can write to ask CPF Board to explain the calculation; cannot change the amount
+- OA can be used for HDB flat purchase (downpayment + monthly instalments)
+- If OA was used and flat is sold: CPF refund (principal + accrued interest) must be returned to OA before cash proceeds are released
+- **Common MPS case:** Constituent shocked by CPF refund amount when selling flat
+  This is a legislative requirement — cannot be waived. Explanation only.
 
 ---
 
-## Letter addressees
+## CPF top-up (Retirement Sum Topping-Up Scheme — RSTU)
 
-| Issue | Address to |
+- Members and family members can top up RA with cash
+- Tax relief of up to $8,000/year for top-ups to own account; additional $8,000 for top-ups to spouse/parents/grandparents/siblings
+- **Common MPS case:** Elderly parent with very little RA — can children help? Yes — via RSTU. No cap on top-up amount (but tax relief capped at $8,000)
+
+---
+
+## Workfare Income Supplement (WIS)
+
+- Cash and CPF top-up for lower-wage workers
+- **Eligibility:** Singapore citizen, age 30+ (35+ for persons with disabilities), gross monthly income $500–$3,000
+- **Paid:** Quarterly, automatically — no application needed if employer submits CPF contributions
+- **Common MPS case:** Constituent not receiving WIS despite being eligible
+  **Action:** Check if employer is submitting CPF; if yes, MP letter to MOM/CPF Board requesting investigation
+
+---
+
+## CPF appeal process
+
+- Appeals submitted via MP letter to CPF Board
+- CPF Board responds within **3–4 weeks**
+- MediSave appeals often require supporting documents from the treating hospital or clinic (doctor's memo, hospital bills, treatment plan)
+- For hardship cases (e.g. serious illness, unemployment): state circumstances clearly; CPF Board has discretion on MediSave claims
+
+---
+
+## Common MPS case types
+
+| Case | Recommended action |
 |---|---|
-| Withdrawal | Head, Withdrawals, Central Provident Fund Board |
-| Employer non-contribution | Head, Compliance, Central Provident Fund Board |
-| Housing (OA usage) | Head, Housing, Central Provident Fund Board |
-| MediSave / healthcare | Head, MediSave, Central Provident Fund Board |
-| General enquiry | Chief Executive, Central Provident Fund Board |
+| Cannot withdraw CPF at 55 | Explain FRS rule; advise on BRS pledge option |
+| MediSave claim rejected | MP letter to CPF Board + hospital/clinic memo |
+| CPF LIFE payout seems low | Explain plan type; refer to cpf.gov.sg calculator |
+| Did not receive Workfare | Check CPF contribution history; MP letter if employer issue |
+| MRSS — not receiving matching | Check eligibility; MP letter if incorrectly assessed |
+| OA used for housing — wants to sell | Explain mandatory CPF refund; cannot waive |
+| Wants to top up elderly parent's CPF | Direct to RSTU scheme at cpf.gov.sg |
+| CPF contribution dispute with employer | Refer to MOM / CPF Board; MP letter if ignored |

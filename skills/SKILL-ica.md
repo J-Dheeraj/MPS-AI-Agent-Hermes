@@ -1,151 +1,207 @@
 ---
 name: mps-policy-ica
-description: PR and citizenship appeals, LTVP, LTVP+, REP, holistic assessment criteria for Singapore MPS casework
+description: PR application appeals, citizenship appeals, LTVP, LTVP+, REP, family separation, ICA letter strategy for Singapore MPS casework
 triggers:
-  - ICA
-  - Immigration
   - PR appeal
-  - permanent residence
+  - PR application
   - citizenship
   - LTVP
-  - re-entry permit
   - REP
+  - re-entry permit
+  - ICA
+  - immigration
+  - permanent resident
   - naturalisation
-  - immigration appeal
+  - foreign spouse
+  - pass rejected
+  - long-term visit
 ---
 
-# SKILL-ica — Immigration & Checkpoints Authority
+# ICA / Immigration Policy Reference — MPS Casework (2025/2026)
 
-## Agency contacts
+## Critical framing for all ICA cases
 
-**Immigration & Checkpoints Authority (ICA)**  
-Official: www.ica.gov.sg  
-Public enquiries: 6391-6100  
-e-Service: eservices.ica.gov.sg
+ICA has **wide discretion** in all PR, citizenship, and pass decisions. There are no fixed income thresholds for PR or citizenship. ICA does not disclose reasons for rejections.
+
+**What an MP letter can do:**
+
+- Signal that the MP has reviewed the case and considers it meritorious
+- Surface facts ICA may not have fully weighted in their assessment
+- Request a review — not a reversal
+
+**What an MP letter cannot do:**
+
+- Override ICA's discretion
+- Compel ICA to grant any pass or status
+- Guarantee a review will lead to a different outcome
+
+**The MP letter for ICA cases must be the strongest factual case possible.** Emotional appeals alone do not move ICA. Facts do: years of residence, children born here, employment record, community contributions, NS service.
 
 ---
 
 ## Permanent Residence (PR)
 
-### Key facts
+### What ICA assesses (no published formula)
 
-- **No fixed income threshold** — ICA uses a holistic assessment
-- Assessment factors (all weighted together):
-  - Length of residence in Singapore
-  - Employment record, income stability, and economic contribution
-  - Community ties: spouse, children, parents who are SC/PR
-  - Children's education in Singapore schools
-  - Volunteer work, national service, community involvement
-  - Whether the applicant has family members who are Singapore citizens
+- Economic contribution: income, CPF contributions, tax history
+- Length and continuity of stay in Singapore
+- Family ties to citizens or PRs
+- Community integration: children in Singapore schools, volunteering, property ownership, language ability
+- For males: NS liability (if applicable) and fulfilment
 
-### PR appeal letters — what to focus on
+### Processing time
 
-**Include:**
+- Typically 6 months to over 1 year
+- No interim updates from ICA — silence is normal
 
-- How long the constituent has lived in Singapore
-- Employment history and current employer's support letter (if available)
-- Family ties to Singapore citizens or PRs
-- Children in Singapore schools (if applicable)
-- National Service record (for male applicants from eligible countries)
-- Community or volunteer contributions
+### Appeal after rejection
 
-**Avoid:**
+- ICA allows one appeal per rejection
+- Appeal window: within the period ICA specifies in the rejection letter
+- **MP letter strategy for PR appeal:**
+  1. Length of continuous residence (years in Singapore)
+  2. Economic contribution (average income, CPF contributions, taxes paid)
+  3. Family ties (citizen/PR spouse, children born or schooled here)
+  4. Community integration (specific examples: school involvement, grassroots, religious community, neighbourhood ties)
+  5. NS fulfilment (if male applicant or male children approaching NS age)
+  6. Any mitigating factors for gaps in employment or income
+  7. Avoid: vague phrases like "upstanding member of society" without specifics
 
-- Citing a specific salary as the reason they should be approved (ICA does not have a fixed income bar)
-- Claiming the constituent "deserves" PR — focus on facts and ties
-- Speculating about why ICA rejected the application
+### Common reason appeals fail
 
-### PR application process
-
-- Submitted via ICA e-Service
-- Processing time: 4–6 months (can be longer)
-- No fixed quota — approvals vary by cohort
-- Appeals can be submitted; ICA will review but outcomes are not guaranteed
+- Application made too early (fewer than 2–3 years of continuous residence)
+- Gaps in employment or income not explained
+- No family ties to citizens or PRs
+- Male applicant with unresolved NS status
 
 ---
 
-## Singapore Citizenship (SC)
+## Citizenship
 
-### Eligibility (general)
+### Higher bar than PR
 
-- PRs who have held PR for at least 2 years can apply
-- Spouse of SC: can apply as spouse
-- Children born overseas to SC parent: may register as citizen
-- Long-term residents of exceptional merit: can be considered
+- ICA expects deeper integration than PR
+- For males: NS completion (or deferment arrangement if currently serving) is a significant positive factor
+- Children born in Singapore: significant factor
+- Long tenure as PR (typically 2+ years as PR before citizenship)
 
-### Key considerations for appeal
+### Renunciation of foreign citizenship
 
-- SC applications are highly discretionary
-- Same holistic assessment as PR (community ties, length of stay, family integration)
-- National Service (NS) completion or registration for sons is viewed positively
-- Renunciation of foreign citizenship: required upon taking SC
+- Singapore does not allow dual citizenship
+- Constituent must be prepared to renounce foreign citizenship upon approval
+- Some countries (e.g. Malaysia) have their own procedures for renunciation
+
+### MP letter strategy for citizenship
+
+Same structure as PR, with additional emphasis on:
+
+- Total years in Singapore (include PR years)
+- NS contribution or commitment (for males)
+- Depth of rootedness — not just length, but specificity of ties
+- Why Singapore specifically (genuine commitment, not just economic opportunity)
 
 ---
 
-## Long-Term Visit Pass (LTVP)
+## Long-Term Visit Pass (LTVP) — issued by ICA
 
-- For: foreign spouses and family members of Singapore citizens or PRs
-- **Foreign spouse of Singapore citizen:** sponsor must earn ≥**$2,500/month**
-- LTVP is issued by ICA (not MOM, except for work-related passes)
-- Renewable; renewal assessed each time
+### For foreign spouses of Singapore citizens
 
-### LTVP+
+- **Sponsor income:** Citizen sponsor must earn ≥$2,500/month
+- **Duration:** 1–2 years initially; renewable
+- **LTVP+:** For those with longer stays and demonstrably closer ties; comes with In-Principle Approval for work (easier LOC process)
 
-- Granted to LTVP holders with longer stays in Singapore and demonstrably stronger family ties
-- Allows: right to work (with LOC from employer), access to certain subsidies
-- Not automatic — must be applied for separately
+### For foreign spouses of PRs
 
-### LTVP renewal rejected
+- Higher scrutiny than citizen sponsors
+- PR sponsor's income and stability reviewed more carefully
 
-- Write to: Commissioner of Immigration, ICA
-- Focus letter on: length of marriage, children (especially Singapore citizens), any exceptional circumstances
+### For others (parents, children)
+
+- Case-by-case; no clear published criteria
+- MP letter should focus on dependency, family circumstance, medical needs
+
+### Appeal after LTVP rejection
+
+- **MP letter strategy:**
+  1. Length of marriage and cohabitation history
+  2. Children born in Singapore or enrolled in Singapore schools
+  3. Sponsor's income stability and long-term residence
+  4. Evidence of genuine relationship (photos, joint accounts, travel history)
+  5. Hardship if the couple must live apart (medical dependency, young children)
+  6. Plans for long-term residence and integration
 
 ---
 
 ## Re-Entry Permit (REP)
 
-- Required for PRs who wish to travel out of Singapore and retain PR status
-- REP validity: 5 years or less depending on individual circumstances
-- If REP lapsed and PR status lost: constituent must apply through ICA to regularise; MP letter can support
+- **For:** PRs who need to travel outside Singapore without losing PR status
+- **PR must renew REP** before it expires; if it expires while overseas, PR status is lost
+- **Common MPS case:** PR was overseas (illness, family emergency, work) and REP expired; now cannot return as a PR
+- **Action:** MP letter to ICA requesting compassionate re-entry consideration; attach medical/emergency documentation explaining the overseas stay
+- ICA can grant a special pass for the person to re-enter and re-apply — this is discretionary and requires compelling circumstances
 
 ---
 
-## Common MPS cases
+## NS (National Service) and immigration
 
-### PR rejected, constituent has lived in Singapore for many years
+### Male PRs and NS
 
-- Request ICA to reconsider; cite specific ties and contributions
-- Do not promise the constituent the letter will change the outcome
-- Write to: Commissioner of Immigration, Immigration & Checkpoints Authority
+- Male PRs are liable for NS at age 16.5
+- If a male PR did not complete NS: ICA takes this very seriously in any citizenship or REP application
+- PR who renounces to avoid NS: ICA tracks this and may bar re-entry
 
-### PR rejected, foreign spouse of Singapore citizen
+### Common MPS case: Male child approaching NS age — family wants to renounce PR
 
-- This is a common and sensitive case
-- Emphasise: stability of marriage, children (especially if SC), financial stability of sponsor
-- Write to: Commissioner of Immigration, ICA
-
-### LTVP not approved / renewal rejected
-
-- Check: does sponsor meet the $2,500/month income requirement?
-- If income is borderline or there are exceptional circumstances (e.g. illness of the foreign spouse), make the case in the letter
-- Write to: Commissioner of Immigration, ICA
-
-### Citizenship rejected
-
-- SC decisions are highly discretionary; MP letters can request reconsideration
-- Focus on NS service, community contribution, decades of residence
-- Write to: Commissioner of Immigration, ICA
+- This is a sensitive area. MP should not advocate for NS evasion.
+- MP can note the family's circumstances but should not write a letter that effectively supports avoidance of NS obligations.
 
 ---
 
-## Letter addressees
+## Family separation cases
 
-| Issue | Address to |
+### Common scenario
+
+Foreign spouse on Social Visit Pass (SVP) only — no LTVP. Keeps entering on short-term visit passes. Couple has children born in Singapore. Afraid to apply for LTVP formally due to risk of rejection.
+
+**MP letter approach:** Acknowledge the informal arrangement has been ongoing. Advocate for a formal LTVP application and request ICA's favourable consideration given the length of the relationship and Singapore-born children. Do not reference the repeated SVP entries as a negative — frame it as demonstrating genuine ties and continuous presence.
+
+---
+
+## What to include in every ICA appeal letter
+
+**Essential:**
+
+- Full name and FIN/passport number of the applicant
+- Application reference number from ICA's rejection letter
+- Date of rejection
+- Specific status being appealed (PR / citizenship / LTVP / REP)
+
+**Evidence to request from constituent (attach to letter or mention):**
+
+- Years of continuous residence (entry/exit records)
+- Employment letters and income documents (CPF statements, IRAS NOA)
+- Marriage certificate (for spousal cases)
+- Birth certificates of Singapore-born/resident children
+- School records of children in Singapore
+- Any community involvement documentation
+
+**Tone:**
+
+- Factual and specific — no generalities
+- Respectful of ICA's discretion — never adversarial
+- Acknowledge what ICA considers, then present the strongest facts
+
+---
+
+## Common MPS case types
+
+| Case | Recommended action |
 |---|---|
-| PR appeal | Commissioner of Immigration, Immigration & Checkpoints Authority |
-| SC application / appeal | Commissioner of Immigration, Immigration & Checkpoints Authority |
-| LTVP / LTVP+ | Commissioner of Immigration, Immigration & Checkpoints Authority |
-| REP / travel document | Commissioner of Immigration, Immigration & Checkpoints Authority |
-| General ICA | Commissioner of Immigration, Immigration & Checkpoints Authority |
-
-*Note: All ICA immigration matters are addressed to the Commissioner of Immigration regardless of the specific sub-issue.*
+| PR rejected — first application | Advise waiting 1 year and reapplying; strengthen economic/community case |
+| PR rejected — on appeal | MP letter with strongest factual case; manage expectations |
+| Citizenship rejected | MP letter; emphasis on NS and depth of integration |
+| LTVP rejected — foreign spouse | MP letter to ICA; focus on relationship evidence, children, income |
+| LTVP+ not granted | MP letter requesting upgrade; cite employment history, length of stay |
+| REP expired overseas | MP letter with supporting medical/emergency docs; compassionate request |
+| Family separation — SVP only | Advocate for formal LTVP application; MP letter of support |
+| Male child — NS and PR renunciation | Do not write letter supporting NS avoidance; explain obligations |

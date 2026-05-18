@@ -1,142 +1,160 @@
 ---
 name: mps-policy-moh
-description: CHAS Blue/Orange, MediFund, MediShield Life, CareShield Life, long-term care, Pioneer/Merdeka Generation for Singapore MPS casework
+description: CHAS, MediFund, MediShield Life, CareShield Life, ElderShield, AIC, Pioneer/Merdeka Generation, hospital subsidies for Singapore MPS casework
 triggers:
   - CHAS
   - MediFund
   - MediShield Life
   - CareShield Life
+  - AIC
   - hospital bill
   - healthcare subsidy
-  - MOH
-  - ElderShield
   - Pioneer Generation
   - Merdeka Generation
-  - CHAS card
-  - AIC
+  - ElderShield
+  - medical appeal
+  - polyclinic
+  - ward class
 ---
 
-# SKILL-moh — Ministry of Health / Healthcare Schemes
+# MOH / Healthcare Policy Reference — MPS Casework (2025/2026)
 
-## Agency contacts
+## CHAS (Community Health Assist Scheme)
 
-**Ministry of Health (MOH)**  
-Official: www.moh.gov.sg  
-Hotline: 6325-9220
+### Card types and eligibility
 
-**Agency for Integrated Care (AIC)** — long-term and community care  
-Official: www.aic.sg | Hotline: 1800-650-6060
+| Card | Household income | Per capita income |
+|---|---|---|
+| Blue | ≤$1,800/month | ≤$650/month |
+| Orange | ≤$2,800/month | ≤$1,100/month |
 
-**Community Health Assist Scheme (CHAS)**  
-Official: www.chas.sg | Hotline: 1800-275-2427
+- **Who qualifies:** Singapore citizens only
+- **Covers:** GP visits, dental, selected specialist outpatient clinics
+- **Subsidy amount:** Varies by card type, condition, and clinic type
+- **Renewal:** Cards must be renewed; constituents sometimes miss renewal
+- **Application:** Online via Singpass or at any CHAS clinic
 
-**MediFund**  
-Applied through the hospital / medical institution's medical social worker
+### Common MPS cases
 
----
+**CHAS card rejected on renewal**
+Most common cause: income reassessment shows household income above threshold. Check if all household members' incomes were correctly declared. MP letter to AIC (Agency for Integrated Care — manages CHAS) requesting review.
 
-## Community Health Assist Scheme (CHAS)
+**CHAS card not accepted at clinic**
+Clinic may not be a registered CHAS clinic, or card may have expired. Direct constituent to chas.sg to find a registered clinic nearby.
 
-### CHAS Blue card
-
-- **Household income:** ≤**$1,800/month** OR per capita monthly income ≤**$650**
-- Subsidies at: GP clinics, dental clinics, polyclinics (for selected conditions)
-- Subsidy level: highest tier — eligible for most chronic disease management programmes
-
-### CHAS Orange card
-
-- **Household income:** ≤**$2,800/month** OR per capita monthly income ≤**$1,100**
-- Lower subsidy level than Blue
-
-### CHAS Green card (Pioneer/Merdeka Generation)
-
-- **Pioneer Generation:** born on or before 31 December 1949
-- **Merdeka Generation:** born 1 January 1950 – 31 December 1959
-- Higher subsidies and additional benefits under Pioneer Generation Package / Merdeka Generation Package
-
-### Key points
-
-- Cards must be renewed; lapses are common — check renewal dates
-- Application: via Singpass at chas.sg or any CHAS clinic
-- **Common issue:** constituent's income increased slightly and card was not renewed — MP can write requesting reassessment if hardship is genuine
+**Specialist not covered**
+CHAS covers selected specialist outpatient visits for chronic conditions. Not all specialists are covered. Refer to chas.sg for covered conditions.
 
 ---
 
 ## MediFund
 
-- **What:** Safety net for Singapore citizens who cannot pay their hospital bills despite using MediShield Life, Medisave, and other subsidies
-- **Who:** Singapore citizens in financial difficulty; means-tested case by case
-- **How to apply:** Through the Medical Social Worker (MSW) at the hospital or restructured healthcare institution — NOT directly to MOH
-- **MP's role:** Write to the CEO of the hospital requesting expedited MediFund review, or write to MOH if systemic issue. Include name and NRIC; do not include bill details unless constituent has consented explicitly.
-- **MediFund Junior:** for children; same process via MSW
+- **What it is:** Safety net for Singapore citizens who cannot afford hospital bills even after MediShield Life, MediSave, and means-tested subsidies
+- **Not an entitlement:** Means-tested, discretionary, assessed per case
+- **How to apply:** Through the hospital's **Medical Social Worker (MSW)** — constituent must go to the hospital finance/MSW department directly
+- **MP role:** MP letter to the hospital CEO or MSW department can expedite assessment and signal the severity of financial hardship
+
+### Key message for MediFund letters
+
+The letter should:
+
+1. State that the constituent has exhausted MediSave and MediShield Life
+2. Describe the financial hardship specifically (income, dependants, debts)
+3. Request that the MediFund Committee consider the application favourably
+4. Address to: CEO of the hospital (not MOH directly)
 
 ---
 
 ## MediShield Life
 
-- Mandatory health insurance for all Singapore citizens and Permanent Residents
-- Covers: large hospital bills and selected outpatient treatments
-- Premiums: subsidised for lower-income groups; fully subsidised for the very poor via Government support
-- Administered by CPF Board on behalf of MOH
-- **Opt-out not permitted** — MediShield Life is compulsory
-- Integrated Shield Plans (IPs): optional upgrades offered by private insurers; not part of MediShield Life itself
+- **What it is:** Mandatory basic health insurance for all Singapore citizens and PRs; covers large hospital bills and selected outpatient treatments
+- **Premiums:** Age-based; subsidised for lower-income members
+- **Premium subsidies:** Additional premium subsidies for those with annual income ≤$34,000 (tiered — lower income = higher subsidy)
+- **Common MPS case:** Constituent cannot afford MediShield Life premiums
+  **Action:** Check if constituent qualifies for premium subsidy; if MediSave is insufficient, additional premium subsidy is automatic based on income — no application needed
+- **MediSave use:** Premiums can be paid from MediSave Account
 
 ---
 
 ## CareShield Life
 
-- Mandatory long-term disability insurance
-- **Who it covers:** Singapore citizens and PRs born on or after 1 January 1980 (automatic enrolment at age 30)
-- **Born before 1980:** covered under ElderShield (opt-in scheme); may switch to CareShield Life
-- Monthly payouts for those severely disabled (unable to perform ≥3 Activities of Daily Living)
-- Payouts increase over time; base amount in 2025/2026 — verify with AIC
-- Administered by AIC
-- **Premium assistance:** for those who cannot afford premiums — apply through AIC
+- **What it is:** Mandatory long-term disability insurance for those born in 1980 or later; covers severe disability (cannot perform 3 of 6 ADLs)
+- **Payout:** Monthly cash payout for life upon qualifying disability claim
+- **Premiums:** Annual premiums from age 30; can be paid from MediSave
+- **Born before 1980:** Covered under ElderShield (older, opt-in scheme)
+- **Enhancements:** Optional supplements from private insurers for higher payouts
+
+### ElderShield (for older cohorts)
+
+- For those who joined before CareShield Life took effect
+- Coverage is lower (fixed payout, limited duration vs. CareShield Life's lifetime payout)
+- **Common MPS case:** Elderly constituent with disability cannot access ElderShield payout
+  **Action:** MP letter to insurer (NTUC Income, Great Eastern, or Aviva) requesting claim review; attach medical certification of disability
 
 ---
 
-## Long-Term Care (nursing homes, day rehab, home care)
+## Pioneer Generation Package (PGP)
 
-- Subsidised by MOH based on means test
-- Apply through AIC (www.aic.sg or 1800-650-6060)
-- Means test assesses: income, property, savings — applied to household, not individual
-- MP can write to AIC if constituent has been waiting too long or assessment seems incorrect
-
----
-
-## Common MPS cases
-
-### CHAS card rejected / not renewed
-
-- Check eligibility thresholds carefully; income change is common reason
-- If still eligible, write to: Director, CHAS, Ministry of Health
-- Request: reassessment of eligibility, or temporary continuation of card
-
-### Hospital bill constituent cannot pay
-
-- First step: Medical Social Worker at the hospital (for MediFund and bill waiver)
-- If MSW has been approached and bill remains unresolved, write to CEO of the hospital
-- For systemic issues: write to Director, Financing, Ministry of Health
-
-### CHAS clinic refuses to accept card
-
-- Clinics are obligated to accept CHAS if they are registered CHAS clinics
-- Write to: Director, CHAS, Ministry of Health
-- Include: name of clinic, date of incident
-
-### CareShield Life premium too high / cannot pay
-
-- Premium assistance schemes exist — apply through AIC
-- Write to: Head, CareShield Life, Agency for Integrated Care
+- **Eligibility:** Singapore citizens born on or before 31 December 1949 AND were citizens or PRs before 1987
+- **Benefits include:**
+  - Additional MediShield Life premium subsidies (lifetime)
+  - MediSave top-ups ($200–$800/year depending on age cohort)
+  - Outpatient subsidy at polyclinics and CHAS clinics
+  - CareShield Life / ElderShield premium subsidies
+- **Common MPS case:** Constituent thinks they qualify but are not receiving PGP benefits
+  **Action:** Check pioneer.gov.sg; MP letter to MOH if records incorrect
 
 ---
 
-## Letter addressees
+## Merdeka Generation Package (MGP)
 
-| Issue | Address to |
+- **Eligibility:** Singapore citizens born 1 January 1950 to 31 December 1959 AND were citizens or PRs before 1996
+- **Benefits include:**
+  - Additional MediShield Life premium subsidies
+  - MediSave top-ups ($1,500 once-off in 2019, then annual top-ups)
+  - Outpatient subsidy at polyclinics and CHAS clinics
+  - CareShield Life / ElderShield support
+- **Common MPS case:** Same as PGP — check merdeka.gov.sg
+  **Action:** MP letter to MOH if entitlements not received
+
+---
+
+## Hospital subsidies — ward classes
+
+| Ward class | Subsidy level | What it means |
+|---|---|---|
+| A | No subsidy | Private room, full choice of doctor |
+| B1 | 20% subsidy | 4-bedded room, choose doctor |
+| B2 | 50–65% subsidy | 6-bedded room, no choice of doctor |
+| C | 65–80% subsidy | Open ward, no choice of doctor |
+
+- **Subsidy eligibility:** Based on per capita household income
+- **MediShield Life:** Pays based on B2/C ward rates regardless of actual ward
+- **Common MPS case:** Constituent in B2/C ward still has a large bill
+  **Action:** Check if MediFund was applied; if not, refer to hospital MSW
+  MP letter to hospital requesting MediFund assessment
+
+---
+
+## AIC (Agency for Integrated Care)
+
+Manages: CHAS, eldercare services, care subsidies for seniors and persons with disabilities.
+
+**For CHAS disputes:** Address MP letter to AIC, not MOH directly.
+**For eldercare placement:** AIC coordinates nursing home placements, day care, home care services. Long wait lists are common.
+**MP letter for nursing home:** Request expedited assessment citing caregiver burden, medical urgency, or lack of family support.
+
+---
+
+## Common MPS case types
+
+| Case | Recommended action |
 |---|---|
-| CHAS | Director, Community Health, Ministry of Health |
-| MediFund | Chief Executive Officer, [Hospital Name] (e.g. SGH, TTSH, NUH) |
-| MediShield Life | Head, MediShield Life, Central Provident Fund Board (administered by CPF) |
-| CareShield Life / LTC | Chief Executive, Agency for Integrated Care |
-| General MOH | Director-General of Health, Ministry of Health |
+| CHAS card rejected / not renewed | MP letter to AIC; check income declaration |
+| Cannot afford hospital bill | Refer to hospital MSW for MediFund; MP letter |
+| MediShield Life premium unaffordable | Check premium subsidy eligibility (automatic) |
+| CareShield Life / ElderShield claim rejected | MP letter to insurer with medical cert |
+| Pioneer / Merdeka benefits not received | Check eligibility sites; MP letter to MOH |
+| Nursing home placement — long wait | MP letter to AIC requesting expedited placement |
+| B2/C ward still has large bill | Check MediFund; refer to hospital MSW |
+| Polyclinic subsidy query | Direct to polyclinic; subsidies are means-tested automatically |
