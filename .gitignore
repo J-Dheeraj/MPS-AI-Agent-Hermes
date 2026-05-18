@@ -1,0 +1,42 @@
+# Environment and secrets
+.env
+*.env
+crm-data/
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Hermes runtime (lives in ~/.hermes/, not in this repo)
+memories/
+logs/
+auto/
+
+# Credentials
+gsheet-credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

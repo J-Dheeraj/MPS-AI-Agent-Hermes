@@ -1,0 +1,88 @@
+# Hermes profile config — MP private channel (mps-main)
+# Place at: ~/.hermes/profiles/mps-main/config.yaml
+#
+# After editing, restart the gateway:
+#   hermes --profile mps-main gateway start --daemon
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+
+model:
+  provider: anthropic
+  name: claude-sonnet-4-5   # claude-opus-4 for highest accuracy on complex cases
+  # Hermes enforces a minimum of 64,000 context tokens.
+  # Both claude-sonnet-4-5 and claude-opus-4 exceed this requirement.
+
+# ---------------------------------------------------------------------------
+# Messaging gateway — Telegram
+# ---------------------------------------------------------------------------
+
+gateway:
+  telegram:
+    token: "YOUR_MAIN_BOT_TOKEN"          # From @BotFather → /newbot
+    allowed_users:
+      - "YOUR_MP_TELEGRAM_ID"             # Find via @userinfobot on Telegram
+    allow_groups: false                    # Private 1-on-1 channel only
+    # WhatsApp (optional — add if MP prefers WhatsApp over Telegram):
+    # See Phase 7 of Hermes-MPS-Setup-Guide.md for Twilio / Meta Cloud API setup
+
+# ---------------------------------------------------------------------------
+# Skills — self-improvement
+# ---------------------------------------------------------------------------
+
+skills:
+  evolution:
+    enabled: true        # GEPA self-improvement — leave enabled
+    trigger_tool_calls: 5  # Auto-capture skill after 5+ tool calls in one session
+  curator:
+    enabled: true        # Curator consolidates + prunes skill library every 7 days
+    interval_days: 7
+
+# ---------------------------------------------------------------------------
+# MCP servers — CRM bridge
+# ---------------------------------------------------------------------------
+
+mcp:
+  servers:
+    crm-bridge:
+      command: python3
+      args:
+        - "~/mps-hermes/mcp-crm-server.py"
+      env:
+        CRM_BACKEND: sqlite                # sqlite | google_sheets | rest_api | sharepoint | csv
+        CRM_DATA_DIR: ~/mps-hermes/crm-data
+        CRM_SQLITE_FILE: mps-cases.db
+        # ── Google Sheets ───────────────────────────────────────────────────
+        # CRM_BACKEND: google_sheets
+        # CRM_GSHEET_ID: <spreadsheet-id-from-url>
+        # CRM_GSHEET_CREDENTIALS: ~/mps-hermes/crm-data/gsheet-credentials.json
+        #
+        # ── REST API ────────────────────────────────────────────────────────
+        # CRM_BACKEND: rest_api
+        # CRM_REST_BASE_URL: https://your-crm.example.com/api/v1
+        # CRM_REST_API_KEY: your-api-key
+        # CRM_REST_API_HEADER: X-API-Key
+        #
+        # ── SharePoint ──────────────────────────────────────────────────────
+        # CRM_BACKEND: sharepoint
+        # CRM_SP_SITE_URL: https://yourorg.sharepoint.com/sites/MPS
+        # CRM_SP_CLIENT_ID: <app-registration-client-id>
+        # CRM_SP_CLIENT_SECRET: <app-registration-client-secret>
+        # CRM_SP_LIST_NAME: MPS Cases
+
+# ---------------------------------------------------------------------------
+# Memory settings
+# ---------------------------------------------------------------------------
+
+memory:
+  enabled: true
+  backend: local          # Stored in ~/.hermes/profiles/mps-main/memories/
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging:
+  level: info
+  file: ~/.hermes/profiles/mps-main/logs/hermes.log

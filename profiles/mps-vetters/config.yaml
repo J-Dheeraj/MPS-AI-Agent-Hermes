@@ -1,0 +1,67 @@
+# Hermes profile config — Vetter team (mps-vetters)
+# Place at: ~/.hermes/profiles/mps-vetters/config.yaml
+#
+# Vetters fact-check and improve draft letters.
+# This profile has NO CRM access — vetters do not log cases or
+# look up constituent records. They only check policy accuracy and tone.
+#
+# After editing, restart the gateway:
+#   hermes --profile mps-vetters gateway start --daemon
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+
+model:
+  provider: anthropic
+  name: claude-sonnet-4-5   # Policy fact-checking does not require opus-level
+
+# ---------------------------------------------------------------------------
+# Messaging gateway — Telegram (private 1-on-1 bots for each vetter)
+# ---------------------------------------------------------------------------
+
+gateway:
+  telegram:
+    token: "YOUR_VETTER_BOT_TOKEN"        # From @BotFather → /newbot
+    allowed_users:
+      - "VETTER_1_TELEGRAM_ID"            # Add each vetter's Telegram ID
+      - "VETTER_2_TELEGRAM_ID"            # Find via @userinfobot on Telegram
+      # Add more vetters as needed
+    allow_groups: false                    # Vetters use the bot privately, not in a group
+
+# ---------------------------------------------------------------------------
+# Skills — self-improvement
+# ---------------------------------------------------------------------------
+
+skills:
+  evolution:
+    enabled: true
+    trigger_tool_calls: 3   # Vetters sessions are shorter — capture at 3 tool calls
+  curator:
+    enabled: true
+    interval_days: 7
+
+# ---------------------------------------------------------------------------
+# MCP servers — NONE
+# Vetters do not have access to constituent records or case management.
+# They verify policy facts and improve letter quality only.
+# ---------------------------------------------------------------------------
+
+mcp:
+  servers: {}
+
+# ---------------------------------------------------------------------------
+# Memory settings
+# ---------------------------------------------------------------------------
+
+memory:
+  enabled: true
+  backend: local
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging:
+  level: info
+  file: ~/.hermes/profiles/mps-vetters/logs/hermes.log

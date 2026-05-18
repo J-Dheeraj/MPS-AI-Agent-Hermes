@@ -1,0 +1,6 @@
+fastmcp
+python-dotenv
+requests
+gspread
+oauth2client
+Office365-REST-Python-Client

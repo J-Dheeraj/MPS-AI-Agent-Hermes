@@ -1,0 +1,73 @@
+# Hermes profile config — Volunteer group (mps-volunteers)
+# Place at: ~/.hermes/profiles/mps-volunteers/config.yaml
+#
+# After editing, restart the gateway:
+#   hermes --profile mps-volunteers gateway start --daemon
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+
+model:
+  provider: anthropic
+  name: claude-sonnet-4-5   # Fast and accurate — suitable for live MPS triage
+
+# ---------------------------------------------------------------------------
+# Messaging gateway — Telegram group
+# ---------------------------------------------------------------------------
+
+gateway:
+  telegram:
+    token: "YOUR_VOLUNTEER_BOT_TOKEN"     # From @BotFather → /newbot
+    allowed_users:
+      - "VOLUNTEER_1_TELEGRAM_ID"         # Add each volunteer's Telegram ID
+      - "VOLUNTEER_2_TELEGRAM_ID"         # Find via @userinfobot on Telegram
+      - "VOLUNTEER_3_TELEGRAM_ID"
+      # Add more volunteers as needed
+    allow_groups: true                     # Volunteers use a shared Telegram group
+    group_mode: mention_only               # Bot only responds when @mentioned
+
+# ---------------------------------------------------------------------------
+# Skills — self-improvement
+# ---------------------------------------------------------------------------
+
+skills:
+  evolution:
+    enabled: true
+    trigger_tool_calls: 5
+  curator:
+    enabled: true
+    interval_days: 7
+
+# ---------------------------------------------------------------------------
+# MCP servers — CRM bridge (volunteers can create and look up cases)
+# ---------------------------------------------------------------------------
+
+mcp:
+  servers:
+    crm-bridge:
+      command: python3
+      args:
+        - "~/mps-hermes/mcp-crm-server.py"
+      env:
+        CRM_BACKEND: sqlite
+        CRM_DATA_DIR: ~/mps-hermes/crm-data
+        CRM_SQLITE_FILE: mps-cases.db
+        # Use the same backend as mps-main — they share one CRM database.
+        # If switching backend, update ALL profiles consistently.
+
+# ---------------------------------------------------------------------------
+# Memory settings
+# ---------------------------------------------------------------------------
+
+memory:
+  enabled: true
+  backend: local          # Independent from mps-main memory
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging:
+  level: info
+  file: ~/.hermes/profiles/mps-volunteers/logs/hermes.log
