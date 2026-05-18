@@ -1,3 +1,21 @@
+---
+name: mps-policy-moh
+description: CHAS Blue/Orange, MediFund, MediShield Life, CareShield Life, long-term care, Pioneer/Merdeka Generation for Singapore MPS casework
+triggers:
+  - CHAS
+  - MediFund
+  - MediShield Life
+  - CareShield Life
+  - hospital bill
+  - healthcare subsidy
+  - MOH
+  - ElderShield
+  - Pioneer Generation
+  - Merdeka Generation
+  - CHAS card
+  - AIC
+---
+
 # SKILL-moh — Ministry of Health / Healthcare Schemes
 
 ## Agency contacts

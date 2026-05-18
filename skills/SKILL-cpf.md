@@ -1,3 +1,19 @@
+---
+name: mps-policy-cpf
+description: CPF accounts, OW ceiling, retirement sums, withdrawal at 55, MediSave, CPF LIFE, MRSS for Singapore MPS casework
+triggers:
+  - CPF
+  - Central Provident Fund
+  - CPF withdrawal
+  - MediSave
+  - retirement sum
+  - CPF LIFE
+  - ordinary account
+  - CPF OA
+  - CPF housing
+  - MRSS
+---
+
 # SKILL-cpf — Central Provident Fund Board
 
 ## Agency contact

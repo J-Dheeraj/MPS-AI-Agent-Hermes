@@ -1,116 +1,112 @@
-# SKILL-hdb — Housing & Development Board
-
-## Agency contact
-
-**Housing & Development Board (HDB)**  
-Official: www.hdb.gov.sg  
-Customer service: 1800-225-5432  
-Branch offices: hdb.gov.sg/cs/infoweb/contact-us
-
+---
+name: mps-policy-hdb
+description: HDB housing grants, eligibility criteria, BTO/resale process, public rental, appeal procedures for Singapore MPS casework
+triggers:
+  - HDB
+  - housing grant
+  - BTO
+  - resale flat
+  - rental flat
+  - HFE letter
+  - CPF housing
+  - flat eligibility
+  - housing appeal
 ---
 
-## Flat grants (2025/2026)
+# HDB Policy Reference — MPS Casework (2025/2026)
 
-### Enhanced CPF Housing Grant (EHG)
+## Grants for flat purchase
 
-- **Families:** up to **$80,000** | income ceiling **$9,000/month**
-- **Singles:** up to **$40,000** | income ceiling **$4,500/month**
-- Applies to: BTO and resale flats
-- First-timer requirement: at least one applicant must not have received a housing grant before
-- EHG replaced the Additional CPF Housing Grant (AHG) and Special CPF Housing Grant (SHG) in September 2019. **Never use AHG or SHG in a letter.**
+### Enhanced CPF Housing Grant (EHG) — replaces AHG and SHG from 2019
+
+- **Families (first-timer):** up to $80,000 | income ceiling $9,000/month
+- **Singles (first-timer, buying 5-room or smaller):** up to $40,000 | ceiling $4,500/month
+- **Eligibility:** continuous employment for 12 months preceding application; income assessed on average over 12 months
+- **BTO and resale:** applies to both
 
 ### Proximity Housing Grant (PHG)
 
-- **Families:** up to **$30,000** (living with/near parents or child)
-- **Singles:** up to **$15,000**
-- "Near" = within 4km of parents' or child's flat
-- Applies to resale flats only
+- **Families:** up to $30,000 (living with/near parents or children)
+- **Singles:** up to $15,000
+- **"Near" defined as:** within 4km of parents'/children's home
 
 ### Step-Up CPF Housing Grant
 
-- **$15,000** for second-timer families moving from a 2-room or smaller to a larger flat
-- Applies to: BTO 2-room Flexi or 3-room in non-mature estates
+- $15,000 for second-timer families moving from rental to 2-room Flexi
+- Must be living in HDB rental flat for at least 1 year
+
+### Fresh Start Housing Scheme (from 2026)
+
+- For first-timer families **currently living in HDB rental flats**
+- Can buy 2-room Flexi or 3-room flat on a shorter lease
+- Designed to help rental flat tenants transition to ownership
+- Apply through HDB — requires at least 1 year in rental flat
 
 ---
 
-## New flat eligibility
+## Income ceilings for flat purchase
 
-### Income ceiling
+| Flat type | Family income ceiling | Singles income ceiling |
+|---|---|---|
+| New flats (BTO) | $14,000/month | $7,000/month |
+| Executive condominiums | $16,000/month | N/A (couples only) |
+| Resale (no ceiling) | No ceiling | No ceiling |
 
-- **Families:** **$14,000/month** (household gross monthly income)
-- **Singles:** **$7,000/month** (individual gross monthly income)
-
-### HDB Flat Eligibility (HFE) letter
-
-- Required before applying for BTO or resale
-- Applied for via the HDB Flat Portal: flat.hdb.gov.sg
-- Processing time: about 21 working days
-- HFE letter is valid for 9 months; apply again if lapsed
+*Note: Grants have separate income ceilings (lower than purchase ceilings)*
 
 ---
 
-## Resale
+## HDB Flat Eligibility (HFE) Letter
 
-- No income ceiling for resale purchase (grants have their own ceilings)
-- Minimum Occupation Period (MOP): 5 years before selling
-- Ethnic Integration Policy (EIP) applies to all resale transactions
-- Singapore Permanent Residents may buy resale but not new BTO flats
+- Mandatory first step for any flat purchase (BTO or resale)
+- Applied via HDB website with Singpass
+- Indicates eligibility for flat types and grants
+- Valid for 9 months
 
 ---
 
 ## Public Rental Scheme
 
-- For Singapore citizens with no other housing options
-- Means-tested: managed directly by HDB
-- Household income: typically below $1,500/month (HDB assesses holistically)
-- Priority for: elderly, disabled, families with young children
-- Waiting list varies by estate; typically 12–36 months
-- Appeal process: write to Director, Public Rental, Housing & Development Board
+- For Singapore citizens with no other housing options and very low income
+- Strictly means-tested; managed by HDB directly
+- Flat types: 1-room and 2-room rental flats
+- Common MPS cases: widow/widower wants to remain in deceased spouse's flat, family facing eviction for rental arrears, elderly applicant with no family
+
+**Widow/widower in rental flat:** HDB can transfer the tenancy if the surviving spouse meets eligibility. MP letter should request tenancy transfer and cite humanitarian grounds.
+
+**Rental arrears:** HDB's policy is to work with tenants. MP letter should request a repayment arrangement and flag any mitigating circumstances (job loss, medical, caregiver burden).
 
 ---
 
-## Fresh Start Housing Scheme (from 2026)
+## Ethnic Integration Policy (EIP)
 
-- For: Singapore citizen families who are first-timers **living in public rental**
-- Eligible for: 2-room Flexi or 3-room BTO flat on shorter lease (minimum 35 years)
-- Includes: Enhanced CPF Housing Grant + Fresh Start Housing Grant
-- Conditions: children in the household; demonstrable effort toward self-sufficiency
-- **Introduced in 2026 Budget** — verify details with HDB before citing specifics in letters
+- Racial quotas per block and neighbourhood for resale flats
+- If a constituent's desired block has hit its ethnic quota, they cannot buy even if otherwise eligible
+- MP cannot override EIP — can only explain the constraint and suggest alternatives (different block, different estate)
 
 ---
 
-## Common MPS cases
+## Appeal process
 
-### Eviction / unable to continue renting
+1. Constituent contacts HDB directly first (MyHDBPage / branch)
+2. If rejected, constituent brings rejection to MPS
+3. MP writes appeal letter to HDB Branch Director or HDB HQ (depending on issue)
+4. HDB typically responds within **4–6 weeks**
+5. Urgent cases (family violence, imminent homelessness) can be escalated for faster response — note urgency clearly in letter
 
-- Constituent must contact HDB Branch directly first
-- If eviction is imminent and constituent has no alternatives, escalate urgency in letter
-- Widows/widowers: HDB has discretion to allow continued tenancy on compassionate grounds; always make this case explicitly
-- Elderly sole occupants: same discretion applies
-
-### BTO application rejected / ballot not successful
-
-- Balloting is not appealable — but the MP can write if there are exceptional circumstances (medical, family, etc.)
-- Focus letter on the specific hardship, not the ballot outcome
-
-### Resale grant dispute / CPF grant not approved
-
-- Usually an HDB eligibility issue — check EHG criteria carefully
-- Write to: Head, Grants, Housing & Development Board
-
-### MOP waiver request
-
-- MOP waiver: grounds of severe hardship (divorce, medical, financial)
-- Write to: Director, Policy, Housing & Development Board
+**For complex cases:** HDB Branch offices handle branch-specific matters. HDB HQ (480 Lorong 6 Toa Payoh) handles policy-level appeals.
 
 ---
 
-## Letter addressees
+## Common MPS case types and recommended action
 
-| Issue | Address to |
+| Case type | Recommended action |
 |---|---|
-| Rental flat | Director, Public Rental, Housing & Development Board |
-| BTO / resale grants | Head, Grants, Housing & Development Board |
-| Resale eligibility | Director, Resale, Housing & Development Board |
-| MOP waiver | Director, Policy, Housing & Development Board |
-| General / unclear | Director (name of HDB Branch office) |
+| BTO ballot — repeated failures | MP letter requesting priority / compassionate consideration |
+| Resale — ethnic quota block | Explain EIP; suggest alternative estates |
+| Rental flat — tenancy transfer (death) | MP letter to HDB requesting transfer |
+| Rental arrears — eviction notice | MP letter requesting repayment arrangement |
+| HFE rejected | MP letter requesting review; attach documents |
+| Cannot afford downpayment | Check EHG eligibility; check CPF OA balance |
+| Town Council maintenance complaint | Refer to Town Council; MP can write separately |
+| Neighbour dispute / noise | Refer to HDB Branch / Town Council first |

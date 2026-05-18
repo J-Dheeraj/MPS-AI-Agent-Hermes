@@ -1,3 +1,22 @@
+---
+name: mps-policy-mom
+description: Work passes (EP, S Pass, WP, LTVP), salary disputes, TADM, retrenchment, Workfare for Singapore MPS casework
+triggers:
+  - MOM
+  - Ministry of Manpower
+  - Employment Pass
+  - EP
+  - S Pass
+  - work permit
+  - LTVP
+  - salary dispute
+  - TADM
+  - retrenchment
+  - Workfare
+  - foreign worker
+  - domestic helper
+---
+
 # SKILL-mom — Ministry of Manpower
 
 ## Agency contacts

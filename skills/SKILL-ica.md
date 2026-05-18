@@ -1,3 +1,19 @@
+---
+name: mps-policy-ica
+description: PR and citizenship appeals, LTVP, LTVP+, REP, holistic assessment criteria for Singapore MPS casework
+triggers:
+  - ICA
+  - Immigration
+  - PR appeal
+  - permanent residence
+  - citizenship
+  - LTVP
+  - re-entry permit
+  - REP
+  - naturalisation
+  - immigration appeal
+---
+
 # SKILL-ica — Immigration & Checkpoints Authority
 
 ## Agency contacts

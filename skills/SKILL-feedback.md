@@ -1,119 +1,100 @@
-# SKILL-feedback — Self-Improvement Feedback Capture
-
-## Purpose
-
-This skill provides a structured way to capture corrections and improvements from the MP after any MPS interaction. Feedback captured here feeds directly into Hermes's GEPA self-improvement cycle.
-
+---
+name: mps-self-improvement-feedback
+description: Captures corrections and feedback from MPS sessions to feed into Hermes self-improvement cycle
+triggers:
+  - /feedback
+  - that was wrong
+  - correction
+  - the threshold is
+  - the policy changed
+  - update your knowledge
+  - that letter needed
 ---
 
-## How to submit feedback
+# MPS Feedback and Self-Improvement
 
-The MP sends:
+## How to submit a correction
 
-```
-/feedback [description of what was wrong and what it should have been]
-```
-
-The agent will:
-
-1. Acknowledge the feedback
-2. Record it in a structured format in the feedback log
-3. Flag it for the next GEPA evolution cycle
-
----
-
-## Feedback categories
-
-When receiving a `/feedback` command, classify it into one of these categories:
-
-### POLICY_ERROR
-Wrong policy information was given — incorrect income threshold, wrong scheme name, outdated eligibility rule, wrong agency.
-
-Example:
-> /feedback The letter said the EHG income ceiling is $8,000 for families. It is $9,000.
-
-### TONE_ERROR
-The drafted letter's tone was wrong — too emotional, too combative, too informal, or too cold.
-
-Example:
-> /feedback The letter used the word "unfair" which the agency may take badly. Use neutral language instead.
-
-### FORMAT_ERROR
-The letter structure was wrong — missing field, wrong addressee, wrong salutation, too long.
-
-Example:
-> /feedback Forgot to include the MP office email in the cc block.
-
-### ROUTING_ERROR
-The wrong agency was identified or the wrong department was addressed.
-
-Example:
-> /feedback I said write to MOM but this LTVP case should go to ICA.
-
-### TRIAGE_ERROR
-The urgency was mis-assessed, or the wrong action (letter vs SSO referral) was recommended.
-
-Example:
-> /feedback Flagged as normal urgency but this constituent had no food — should have been urgent with SSO referral.
-
-### BEHAVIOUR_ERROR
-The agent made a promise, speculated, or behaved outside its stated rules.
-
-Example:
-> /feedback Agent said "this should be approved by HDB" — that is a promise we cannot make.
-
----
-
-## Feedback record format
-
-When a `/feedback` command is received, write a new entry in the format below. The skills evolution system will index this automatically.
+Send the agent a correction at any time using this format:
 
 ```
-## Feedback entry — [DATE]
-
-Category: [POLICY_ERROR | TONE_ERROR | FORMAT_ERROR | ROUTING_ERROR | TRIAGE_ERROR | BEHAVIOUR_ERROR]
-
-What happened:
-[Brief description of what the agent did]
-
-What it should have done:
-[Description of the correct behaviour]
-
-Case context (optional):
-[Agency, issue type — no constituent names or NRICs]
-
-Action for next evolution cycle:
-[What rule or knowledge should be updated]
+/feedback [what was wrong] → [what it should be] | case [ID if relevant]
 ```
 
----
-
-## Patterns to watch for
-
-If the same type of feedback appears more than once, flag it explicitly:
-
-> **Recurring pattern:** [category] — this has occurred [N] times. Recommend GEPA priority review.
-
-The curator will consolidate recurring feedback patterns into updated skill rules automatically during the weekly curation cycle.
-
----
-
-## What this skill does NOT do
-
-- It does not store constituent names, NRICs, or personal details in feedback entries  
-- It does not override the agent's core behavioural rules without a GEPA evolution cycle  
-- It does not bypass the PASS / NEEDS REVISION / FLAG vetting process
-
----
-
-## Manual evolution trigger (if needed)
-
-To force an immediate evolution cycle after multiple feedback entries:
+Examples:
 
 ```
-hermes --profile mps-main skills evolve --now
+/feedback CHAS Blue stated as household ≤$1,800 only → correct is
+household ≤$1,800 OR per capita ≤$650 | case 42
+
+/feedback EHG singles ceiling stated as $40,000 → correct is up to
+$40,000, income ceiling $4,500/month | case 39
+
+/feedback Letter to HDB addressed wrong department → should go to
+HDB Branch, not HDB HQ for tenancy transfer cases | case 51
 ```
 
-Or ask the agent:
+## What happens with feedback
 
-> Run a skills evolution cycle now based on the recent feedback.
+1. The correction is logged immediately with timestamp and case reference
+2. At the next scheduled evolution cycle (default: after 5+ tool-call sessions, or weekly via Curator), Hermes reviews logged feedback
+3. The GEPA Optimizer reads the correction against its recent execution traces to understand the error pattern
+4. A revised skill file is generated — for example, if 3 cases flagged the same CHAS threshold error, the SKILL-moh.md is updated
+5. The updated skill is used from the next session onwards
+
+## What triggers automatic skill creation
+
+After any conversation involving 5 or more tool calls, Hermes automatically summarises the case trajectory into a skill file. For MPS, this typically happens when:
+
+- A complex multi-agency case is handled
+- A letter is drafted, then revised based on policy clarification
+- A constituent has multiple prior cases that required research
+
+These auto-skills appear in `skills/auto/` — for example:
+
+- `hdb-widow-tenancy-transfer.md`
+- `comcare-urgent-crisis-referral-pattern.md`
+- `cpf-medisave-outpatient-scan-2026.md`
+
+## Reviewing what the agent has learned
+
+Ask the agent at any time:
+
+```
+show me your recent auto-skills
+what have you learned from the last 10 MPS sessions?
+summarise all corrections logged this month
+```
+
+## Forcing an evolution cycle
+
+To trigger a manual self-improvement run (e.g. after a session with many corrections):
+
+```
+run skills evolve now
+```
+
+To run the Curator (consolidation and pruning):
+
+```
+run skills curator now
+```
+
+## Weekly self-review (scheduled)
+
+Set up this task once (send to the MP bot):
+
+```
+Set up a scheduled task: every Monday at 6:00am, review all feedback
+logged in the past 7 days and all auto-skills generated this week.
+Send me a summary of:
+
+1. Policy corrections made
+2. New case patterns learned
+3. Any skills that were pruned or consolidated
+4. Suggested updates to my core knowledge (SOUL.md)
+
+Name this task: weekly-self-review
+```
+
+The agent will send a Monday morning digest showing exactly what it has learned and proposing any SOUL.md updates for your approval.
