@@ -89,7 +89,7 @@ The letter should:
 - For those who joined before CareShield Life took effect
 - Coverage is lower (fixed payout, limited duration vs. CareShield Life's lifetime payout)
 - **Common MPS case:** Elderly constituent with disability cannot access ElderShield payout
-  **Action:** MP letter to insurer (NTUC Income, Great Eastern, or Aviva) requesting claim review; attach medical certification of disability
+  **Action:** MP letter to insurer (NTUC Income, Great Eastern, or Singlife — formerly Aviva) requesting claim review; attach medical certification of disability
 
 ---
 
@@ -111,7 +111,7 @@ The letter should:
 - **Eligibility:** Singapore citizens born 1 January 1950 to 31 December 1959 AND were citizens or PRs before 1996
 - **Benefits include:**
   - Additional MediShield Life premium subsidies
-  - MediSave top-ups ($1,500 once-off in 2019, then annual top-ups)
+  - MediSave top-ups ($1,500 once-off in 2019, then annual top-ups of ~$200/year)
   - Outpatient subsidy at polyclinics and CHAS clinics
   - CareShield Life / ElderShield support
 - **Common MPS case:** Same as PGP — check merdeka.gov.sg

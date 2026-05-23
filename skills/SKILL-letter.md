@@ -12,6 +12,8 @@ triggers:
   - write to ICA
   - write to IRAS
   - write to MOE
+  - write to LTA
+  - write to AIC
   - letter format
 ---
 
@@ -147,6 +149,15 @@ The Chief Executive
 Land Transport Authority
 1 Hampshire Road
 Singapore 219428
+
+### AIC (Agency for Integrated Care)
+
+The Chief Executive Officer
+Agency for Integrated Care
+No. 5 Maxwell Road, #10-00 Tower Block MND Complex
+Singapore 069110
+
+*For CHAS disputes and eldercare placement. Do NOT address CHAS letters to MOH — address to AIC.*
 
 ---
 

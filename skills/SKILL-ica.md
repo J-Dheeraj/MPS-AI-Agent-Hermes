@@ -135,7 +135,7 @@ Same structure as PR, with additional emphasis on:
 ## Re-Entry Permit (REP)
 
 - **For:** PRs who need to travel outside Singapore without losing PR status
-- **PR must renew REP** before it expires; if it expires while overseas, PR status is lost
+- **PR must renew REP** before it expires; if it expires while overseas, the PR loses the automatic right to re-enter Singapore as a PR — ICA must approve re-entry, which is not guaranteed
 - **Common MPS case:** PR was overseas (illness, family emergency, work) and REP expired; now cannot return as a PR
 - **Action:** MP letter to ICA requesting compassionate re-entry consideration; attach medical/emergency documentation explaining the overseas stay
 - ICA can grant a special pass for the person to re-enter and re-apply — this is discretionary and requires compelling circumstances

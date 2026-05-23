@@ -42,8 +42,10 @@ triggers:
 
 ### 3. Long-Term Assistance (Public Assistance — PA)
 
+⚠️ **Note:** "PA" or "Public Assistance" is the correct term to use. Do NOT abbreviate as "LTA" — that abbreviation refers to the Land Transport Authority.
+
 - **For:** Persons who are permanently unable to work due to age, illness, or disability, with no family support
-- **What it provides:** Monthly cash (very low — meant as safety net)
+- **What it provides:** Monthly cash assistance (~$570/month for a single person; varies by household size and circumstances)
 - **How to access:** Apply at SSO; strict means test
 - **MP role:** MP letter useful if application was rejected and circumstances genuinely meet criteria
 
@@ -115,7 +117,7 @@ SSOs conduct holistic family assessments and connect families to:
 |---|---|
 | No money for food / utilities today | Urgent SSO referral; mark CRISIS |
 | Just lost job, family cannot cope | SSO referral for SMTA assessment |
-| Elderly, no income, family not helping | SSO referral for LTA / Silver Support check |
+| Elderly, no income, family not helping | SSO referral for Public Assistance (PA) / Silver Support check |
 | Silver Support not received | MP letter to MSF requesting payment review |
 | SSO rejected ComCare — disputed | MP letter requesting review; attach evidence |
 | Complex family — multiple needs | Request ComLink+ assessment via SSO referral |

@@ -24,11 +24,13 @@ triggers:
 | Account | Purpose | Interest rate (approx) |
 |---|---|---|
 | Ordinary Account (OA) | Housing, education, investment | ~2.5% p.a. |
-| Special Account (SA) | Retirement savings | ~4% p.a. |
+| Special Account (SA) | Retirement savings (closed at 55 — see below) | ~4% p.a. |
 | MediSave Account (MA) | Healthcare expenses | ~4% p.a. |
 | Retirement Account (RA) | Formed at age 55 from OA + SA | ~4% p.a. |
 
 *Exact rates updated quarterly. Check cpf.gov.sg for current quarter figures.*
+
+**SA closure at 55 (from January 2025):** When a member turns 55, their Special Account is closed. SA funds up to the Full Retirement Sum (FRS) are transferred to the Retirement Account (RA). Any remaining SA funds above the FRS go to the Ordinary Account (OA). Members below 55 may still contribute to SA normally.
 
 ---
 
@@ -56,7 +58,7 @@ triggers:
 - FRS and BRS amounts are adjusted annually (cohort-based)
 - Check cpf.gov.sg/member/retirement-income for current year's sums
 - **BRS:** roughly half of FRS; requires property pledge to use lower sum
-- **Enhanced Retirement Sum (ERS):** 3× BRS; voluntary top-up for higher CPF LIFE payout
+- **Enhanced Retirement Sum (ERS):** 4× BRS from January 2025 (raised from 3× BRS); voluntary top-up for higher CPF LIFE payout
 
 ### After 55 — drawdown age
 
@@ -127,8 +129,9 @@ Likely cause: OA + SA balance does not exceed the FRS (or BRS + pledge). Action:
 - Cash and CPF top-up for lower-wage workers
 - **Eligibility:** Singapore citizen, age 30+ (35+ for persons with disabilities), gross monthly income $500–$3,000
 - **Paid:** Quarterly, automatically — no application needed if employer submits CPF contributions
+- **Self-employed:** Must declare income to IRAS annually AND contribute to MediSave to receive WIS — if either is missing, WIS will not be paid
 - **Common MPS case:** Constituent not receiving WIS despite being eligible
-  **Action:** Check if employer is submitting CPF; if yes, MP letter to MOM/CPF Board requesting investigation
+  **Action:** Check if employer is submitting CPF (employees) or if IRAS declaration + MediSave contribution made (self-employed); MP letter to MOM/CPF Board if employer is failing to contribute
 
 ---
 

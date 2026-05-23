@@ -35,12 +35,13 @@ triggers:
 - $15,000 for second-timer families moving from rental to 2-room Flexi
 - Must be living in HDB rental flat for at least 1 year
 
-### Fresh Start Housing Scheme (from 2026)
+### Fresh Start Housing Scheme (expanded 2026)
 
-- For first-timer families **currently living in HDB rental flats**
+- Originally for **second-timer families** with children currently living in HDB rental flats; expanded in 2026 to include additional categories
 - Can buy 2-room Flexi or 3-room flat on a shorter lease
 - Designed to help rental flat tenants transition to ownership
 - Apply through HDB — requires at least 1 year in rental flat
+- ⚠️ **Verify current eligibility at hdb.gov.sg before advising** — scheme criteria were updated in 2026 Budget
 
 ---
 

@@ -36,11 +36,19 @@ HDB Branch, not HDB HQ for tenancy transfer cases | case 51
 
 ## What happens with feedback
 
-1. The correction is logged immediately with timestamp and case reference
-2. At the next scheduled evolution cycle (default: after 5+ tool-call sessions, or weekly via Curator), Hermes reviews logged feedback
-3. The GEPA Optimizer reads the correction against its recent execution traces to understand the error pattern
-4. A revised skill file is generated — for example, if 3 cases flagged the same CHAS threshold error, the SKILL-moh.md is updated
-5. The updated skill is used from the next session onwards
+**In the combined nanoClaw + Hermes setup:**
+
+1. The `/feedback` command is sent in nanoClaw (production system), not Hermes directly
+2. nanoClaw logs the correction as an anonymised pattern in `groups/main/feedback-log.md` — no constituent data, no NRICs, no names
+3. Every Sunday, `weekly-skill-update.sh` exports the anonymised patterns to Hermes
+4. GEPA processes the patterns: if 3+ cases flag the same error (e.g. wrong CHAS threshold), SKILL-moh.md is updated
+5. The MP reviews every generated change in `skills/auto/` before it is applied to nanoClaw
+
+**In Hermes standalone mode (offline):**
+
+1. Feed corrections via `feedback-input.md`
+2. Run: `hermes --profile mps-main skills evolve --now`
+3. Review output in `skills/auto/`
 
 ## What triggers automatic skill creation
 
@@ -56,45 +64,31 @@ These auto-skills appear in `skills/auto/` — for example:
 - `comcare-urgent-crisis-referral-pattern.md`
 - `cpf-medisave-outpatient-scan-2026.md`
 
-## Reviewing what the agent has learned
-
-Ask the agent at any time:
-
-```
-show me your recent auto-skills
-what have you learned from the last 10 MPS sessions?
-summarise all corrections logged this month
-```
+⚠️ **Review all auto-generated skills before applying to nanoClaw.** Check for fabricated policy figures or any text resembling constituent details.
 
 ## Forcing an evolution cycle
 
-To trigger a manual self-improvement run (e.g. after a session with many corrections):
+Via CLI (offline Hermes):
 
-```
-run skills evolve now
-```
-
-To run the Curator (consolidation and pruning):
-
-```
-run skills curator now
+```bash
+hermes --profile mps-main skills evolve --now
+hermes --profile mps-main skills curator --run
 ```
 
-## Weekly self-review (scheduled)
+Via nanoClaw weekly pipeline:
 
-Set up this task once (send to the MP bot):
-
+```bash
+cd ~/nanoclaw
+bash weekly-skill-update.sh
 ```
-Set up a scheduled task: every Monday at 6:00am, review all feedback
-logged in the past 7 days and all auto-skills generated this week.
-Send me a summary of:
 
-1. Policy corrections made
+## Weekly self-review
+
+The weekly pipeline (`weekly-skill-update.sh`) runs every Sunday and produces a review of:
+
+1. Policy corrections processed
 2. New case patterns learned
-3. Any skills that were pruned or consolidated
-4. Suggested updates to my core knowledge (SOUL.md)
+3. Skills pruned or consolidated by the Curator
+4. Generated changes ready for your review
 
-Name this task: weekly-self-review
-```
-
-The agent will send a Monday morning digest showing exactly what it has learned and proposing any SOUL.md updates for your approval.
+Review `skills/auto/` after each run and merge approved improvements into nanoClaw's `groups/main/CLAUDE.md`. See `INTEGRATION.md` in the nanoClaw repo for the full workflow.
