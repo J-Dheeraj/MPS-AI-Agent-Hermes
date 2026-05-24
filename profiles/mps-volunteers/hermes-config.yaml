@@ -1,0 +1,26 @@
+# Hermes GEPA config for MPS volunteers group
+# Uses Ollama exclusively — no cloud API calls
+profile: mps-volunteers
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: llama3.2:3b
+  # Upgrade to 8b for better quality skill improvement:
+  # model: llama3.1:8b
+
+gepa:
+  # Weekly skill improvement cycle
+  schedule: "0 2 * * 0"   # Sunday 2am (after MPS night)
+  skill_files:
+    - skills/HDB.md
+    - skills/CPF.md
+    - skills/MSF.md
+    - skills/MOH.md
+    - skills/MOM.md
+    - skills/ICA.md
+    - skills/letter-format.md
+  # Only approved feedback reaches GEPA — no constituent data
+  feedback_endpoint: http://127.0.0.1:8000/feedback/approved
+  feedback_token_env: MPS_HERMES_TOKEN   # set in .env
+  # Never store raw feedback in GEPA — extract policy corrections only
+  data_isolation: strict

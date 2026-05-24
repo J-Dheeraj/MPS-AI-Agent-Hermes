@@ -1,180 +1,159 @@
 # MPS-AI-Agent-Hermes — Offline Skill Engine (GEPA)
 
-A weekly offline skill improvement engine for the [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) production system — built on the **Hermes Agent** platform by Nous Research.
+A weekly offline skill improvement engine for the [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) production system — powered by **Ollama** running fully on-premises. No API key. No cloud calls. No constituent data.
 
-This repo does **not** run as a live agent handling constituent interactions. It runs once per week to process anonymised correction patterns from nanoClaw sessions and improve the agent's policy reasoning via **GEPA** (Generalised Experience-driven Policy Adaptation, ICLR 2026).
+GEPA (Generalised Experience-driven Policy Adaptation, ICLR 2026) reads **vetter-validated, anonymised policy corrections** from the nanoClaw FastAPI server and improves SKILL files weekly.
 
-> **Production system:** [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) handles all live constituent interactions (WhatsApp, Telegram, Web UI) with full security controls. See that repo's [INTEGRATION.md](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw/blob/main/INTEGRATION.md) for the full combined workflow.
+> **Production system:** [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) handles all live volunteer and vetter interactions via a GTK4 native desktop app + FastAPI backend + Ollama. See that repo's [INTEGRATION.md](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw/blob/main/INTEGRATION.md) for the full combined workflow.
 
 ---
 
 ## Two-system architecture
 
 ```
-nanoClaw (production) ─────────────────────────────────────────
-  All live constituent interactions
-  WhatsApp / Telegram / Web UI / CLI
-  Security: OneCLI vault, Docker isolation, local AI
-  CRM: case logging, letter storage, overdue tracking
+nanoClaw (production) ─────────────────────────────────────────────────────
+  GTK4 client on each volunteer/vetter laptop
+  FastAPI server (mps_server) on central machine
+  Ollama (llama3.2:3b) — all inference on-premises, no API key
+  SQLite + append-only audit log
+  NRIC never stored in full (S****567A)
                 │
-                │  Weekly export — anonymised patterns only
+                │  Vetters validate corrections in GTK4 client
+                │  Only approved, anonymised corrections leave nanoClaw
+                │  via GET /feedback/approved  (LAN call, no internet)
                 │  No NRIC. No names. No case IDs.
-                │  Human review required before export.
                 ▼
-Hermes (this repo) ─────────────────────────────────────────────
-  Offline skill improvement engine
-  GEPA processes correction patterns → generates updated SKILL files
-  Human reviews every generated change before approval
+Hermes (this repo) ─────────────────────────────────────────────────────────
+  Runs on the same server, Sunday 2am
+  Ollama (llama3.2:3b) — same inference, still offline
+  GEPA reads /feedback/approved → improves SKILL-*.md files
+  Human reviews every generated change before it takes effect
                 │
-                │  Approved improvements merged into nanoClaw CLAUDE.md
+                │  Approved SKILL file changes → committed to this repo
                 ▼
-nanoClaw restarts with improved reasoning
+nanoClaw loads updated SKILL files at next session
 ```
 
-**Security boundary:** constituent data never enters this system. Only anonymised policy correction patterns flow in. See [INTEGRATION.md](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw/blob/main/INTEGRATION.md) for the full security rules.
+**Security boundary:** constituent data never enters this system. Only vetter-validated policy corrections (not case data, not NRIC, not names) flow in via the local API.
+
+---
+
+## What changed from the previous version
+
+| Before | Now |
+|--------|-----|
+| Anthropic Claude API (sk-ant- key) | **Ollama on-premises** — no API key |
+| feedback-log.md exported manually | **GET /feedback/approved** — API call to nanoClaw server |
+| Weekly shell script triggers GEPA | **Cron job** Sunday 2am, automatic |
+| Profiles reference live Telegram bots | **Offline only** — no live connections |
+| Manual PII scan before export | **Server-side enforcement** — vetters validate before approval |
 
 ---
 
 ## What GEPA does
 
-After each MPS session, volunteers and the MP log corrections in nanoClaw:
+After each MPS session, volunteers and vetters log corrections in the GTK4 client:
 
 ```
-/feedback CHAS Blue threshold cited as $2,000 → correct is $1,800/month household | agency: MOH
-/feedback EHG ceiling cited as $9,000 → correct ceiling is $8,000 for families | agency: HDB
+Incorrect claim: "EHG ceiling is $9,000"
+Correct answer:  "EHG ceiling is $8,000 for families"
+Agency: HDB
 ```
 
-Every Sunday, `weekly-skill-update.sh` (in the nanoClaw repo) exports these anonymised patterns to this repo and triggers a GEPA evolution cycle:
+A vetter must approve the correction before it reaches Hermes. Only approved, anonymised entries flow in.
 
-1. GEPA analyses the correction patterns
-2. Generates updated or new SKILL files in `skills/auto/`
-3. Human reviews every generated file — nothing is applied automatically
-4. Approved improvements are manually merged into nanoClaw's `CLAUDE.md`
-5. nanoClaw restarts with improved policy knowledge
+Every Sunday 2am, the GEPA cycle runs automatically:
+
+1. Reads approved corrections from `http://127.0.0.1:8000/feedback/approved`
+2. Analyses patterns — does not store raw feedback
+3. Generates updated SKILL files in `skills/auto/`
+4. Human reviews every generated file — nothing applies automatically
+5. Approved improvements are committed to this repo
+6. nanoClaw loads updated SKILL files at next session
 
 After 5+ cycles, benchmarks show **15–30% task success rate improvement** on MPS-type cases.
 
 ---
 
-## Why offline, not live
+## Configuration
 
-Running Hermes as a live agent would mean:
-
-- Constituent data (NRIC, names, case details) entering a system without OneCLI vault, Docker isolation, or mount allowlist protection
-- Two live agent systems for the same roles creating duplicate responses and CRM conflicts
-- Maintenance of two separate policy knowledge bases that drift apart over time
-
-The offline model gives you GEPA's self-improvement capability without compromising the security architecture. nanoClaw handles all constituent-facing interactions. Hermes handles only anonymised pattern evolution, offline.
-
----
-
-## SKILL files — policy knowledge base
-
-8 Markdown skill files covering all agencies encountered at Singapore MPS sessions. All three profiles share these files. Hermes loads them on demand via GEPA's retrieval system.
-
-| File | Coverage |
-|---|---|
-| `SKILL-hdb.md` | EHG, PHG, Step-Up grants; new flat ceilings; rental scheme; Fresh Start 2026; letter addressees |
-| `SKILL-cpf.md` | Account types; OW ceiling ($8,000/Jan 2026); withdrawal at 55; CPF LIFE; MediSave; MRSS |
-| `SKILL-msf.md` | ComCare tiers (Crisis/SMTA/LTA); Silver Support; ComLink+; SSO referral process |
-| `SKILL-moh.md` | CHAS Blue/Orange; MediFund; MediShield Life; CareShield Life; ElderShield; Pioneer/Merdeka Generation |
-| `SKILL-mom.md` | EP ($5,600/Sep 2025), S Pass ($3,150); LTVP ($2,500 sponsor); TADM; retrenchment; Workfare |
-| `SKILL-ica.md` | PR/SC holistic assessment; LTVP/LTVP+; REP; 7-point PR appeal strategy |
-| `SKILL-letter.md` | Standard MP appeal letter format; tone rules; 8 agency physical addresses; required fields |
-| `SKILL-feedback.md` | `/feedback` command syntax; GEPA capture; skill evolution; weekly review schedule |
-
-GEPA auto-generates additional skills in `skills/auto/` — named by case type (e.g. `hdb-rental-widow-pattern.md`, `comcare-urgent-crisis-referral.md`). Review these weekly before applying to nanoClaw.
-
----
-
-## Profile identities (offline reference)
-
-The three profiles define the agent roles used in the combined system. In offline mode, these are reference documents — the profiles are not connected to any live channel.
-
-### mps-main — MP private channel identity
-`profiles/mps-main/SOUL.md`: pre-session briefing, case history lookup, complex triage, appeal letter drafting, overdue follow-up, GEPA feedback loop.
-
-### mps-volunteers — Volunteer intake team identity
-`profiles/mps-volunteers/SOUL.md`: fast case triage (3–5 lines), complete letter drafts, policy questions, case logging, group Telegram mode.
-
-### mps-vetters — Vetter review team identity
-`profiles/mps-vetters/SOUL.md`: 6-point letter review, PASS / NEEDS REVISION / FLAG verdicts, 2025/2026 policy quick-reference, no CRM access.
-
----
-
-## Offline mode configuration
-
-`profiles/mps-main/config.yaml` is set to offline mode — no live connections:
+### `profiles/mps-volunteers/hermes-config.yaml`
 
 ```yaml
-gateway:
-  telegram:
-    token: ""        # offline — no bot connection
-    allowed_users: []
+profile: mps-volunteers
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: llama3.2:3b
+  # Upgrade to 8b for better quality:
+  # model: llama3.1:8b
 
-skills:
-  evolution:
-    enabled: true
-    auto_capture: false   # no live sessions; patterns come from nanoClaw export
-  curator:
-    enabled: true
-    interval_days: 7
-
-mcp:
-  servers: {}        # no CRM — constituent data stays in nanoClaw
+gepa:
+  schedule: "0 2 * * 0"    # Sunday 2am
+  skill_files:
+    - skills/HDB.md
+    - skills/CPF.md
+    - skills/MSF.md
+    - skills/MOH.md
+    - skills/MOM.md
+    - skills/ICA.md
+    - skills/letter-format.md
+  feedback_endpoint: http://127.0.0.1:8000/feedback/approved
+  feedback_token_env: MPS_HERMES_TOKEN
+  data_isolation: strict    # never stores raw feedback
 ```
 
-See [OFFLINE-MODE.md](./OFFLINE-MODE.md) for the full configuration reference.
+Set `MPS_HERMES_TOKEN` in `.env` — a service account JWT from the nanoClaw server with `vetter` role.
 
 ---
 
-## Weekly operation
+## SKILL files
 
-The full pipeline runs from the nanoClaw machine:
+8 Markdown reference files. GEPA improves these weekly based on vetter-validated corrections.
 
-```bash
-cd ~/nanoclaw
-bash weekly-skill-update.sh
-```
+| File | Agency | Coverage |
+|------|--------|---------|
+| `skills/HDB.md` | HDB | EHG/PHG/Step-Up grants, BTO ceilings, rental, Fresh Start 2026 |
+| `skills/CPF.md` | CPF | OA/SA/MA/RA, OW ceiling $8,000 (Jan 2026), CPF LIFE, MediSave, MRSS |
+| `skills/MSF.md` | MSF | ComCare tiers (Crisis/SMTA/LTA), Silver Support, ComLink+, SSO referral |
+| `skills/MOH.md` | MOH | CHAS Blue/Orange, MediFund, MediShield Life, CareShield Life, PGP/MGP |
+| `skills/MOM.md` | MOM | EP ($5,600/Sep 2025), S Pass ($3,150), LTVP, TADM, Workfare |
+| `skills/ICA.md` | ICA | PR holistic assessment, LTVP/LTVP+, REP, citizenship appeal strategy |
+| `skills/letter-format.md` | All | Standard MP appeal letter format, tone rules, agency addresses |
 
-What the script does:
-1. Scans `feedback-log.md` for NRIC/phone patterns — auto-rejects if found
-2. Prompts manual review of the log before export
-3. Copies anonymised patterns to this repo as `feedback-input.md`
-4. Triggers GEPA evolution cycle
-5. Shows `skills/auto/` changes for your review
-6. Prompts manual merge of approved changes into nanoClaw `CLAUDE.md`
-7. Restarts nanoClaw
-8. Archives the week's log and resets for next week
-
-### Manual GEPA trigger (if needed)
-
-```bash
-hermes --profile mps-main skills evolve --now
-hermes --profile mps-main skills curator --run
-```
-
-Or in interactive mode:
-```
-run skills evolve now
-```
+GEPA auto-generates additional skills in `skills/auto/` — review before applying.
 
 ---
 
-## CRM Bridge
+## Original SKILL files (from v1)
 
-`mcp-crm-server.py` is included for reference — the same server used by nanoClaw. In offline mode, the CRM bridge is **not wired** to any Hermes profile. Constituent case data remains exclusively in nanoClaw.
+The original Hermes skill files are preserved with full policy content:
 
-| Tool | Available in offline Hermes? |
-|---|---|
-| `lookup_constituent` | ❌ No CRM access |
-| `create_case` | ❌ No CRM access |
-| `attach_letter` | ❌ No CRM access |
-| `update_case_status` | ❌ No CRM access |
-| `get_pending_cases` | ❌ No CRM access |
-| `get_todays_queue` | ❌ No CRM access |
+| File | Coverage |
+|------|---------|
+| `SKILL-hdb.md` | EHG, PHG, Step-Up grants; new flat ceilings; rental scheme; Fresh Start 2026 |
+| `SKILL-cpf.md` | Account types; OW ceiling ($8,000/Jan 2026); withdrawal at 55; CPF LIFE; MRSS |
+| `SKILL-msf.md` | ComCare tiers; Silver Support; ComLink+; SSO referral process |
+| `SKILL-moh.md` | CHAS Blue/Orange; MediFund; MediShield Life; CareShield Life; PGP/MGP |
+| `SKILL-mom.md` | EP ($5,600), S Pass ($3,150); LTVP; TADM; retrenchment; Workfare |
+| `SKILL-ica.md` | PR/SC holistic assessment; LTVP/LTVP+; REP; 7-point appeal strategy |
+| `SKILL-letter.md` | Standard MP appeal letter format; 8 agency addresses |
+| `SKILL-feedback.md` | Feedback workflow; GEPA capture; evolution schedule |
 
-All CRM operations happen in nanoClaw only.
+---
+
+## Profile identities
+
+### mps-main — MP private channel
+Pre-session briefing, case history lookup, complex triage, appeal letter drafting, overdue follow-up, GEPA feedback loop.
+
+### mps-volunteers — Volunteer intake team
+Fast case triage, complete letter drafts, policy questions, case logging.
+
+### mps-vetters — Vetter review team
+6-point letter review, PASS / NEEDS REVISION / FLAG verdicts, 2025/2026 policy quick-reference.
+
+All profiles operate in **offline mode** — no live channel connections. nanoClaw handles all constituent-facing interactions.
 
 ---
 
@@ -183,69 +162,111 @@ All CRM operations happen in nanoClaw only.
 ### Prerequisites
 
 ```bash
-# 1. Python 3 and pip
+# Python 3 and pip
 sudo apt-get update && sudo apt-get install -y python3 python3-pip curl
 
-# 2. Clone into Linux filesystem
+# Ollama (same instance as nanoClaw — no need to install twice)
+# If not already installed:
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2:3b
+```
+
+### Clone and configure
+
+```bash
 cd ~
-git clone https://github.com/J-Dheeraj/MPS-AI-Agent-Hermes mps-hermes-agent
+git clone https://github.com/J-Dheeraj/MPS-AI-Agent-Hermes.git mps-hermes-agent
 cd mps-hermes-agent
 
-# 3. Create skills/auto/ directory
 mkdir -p skills/auto
 
-# 4. Install Hermes Agent
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-
-# 5. Configure model
-hermes config set model.provider anthropic
-hermes config set model.name claude-sonnet-4-5
-# Paste your Anthropic API key when prompted
+# Set your Hermes service account token
+cp .env.example .env
+# Edit .env:
+#   MPS_HERMES_TOKEN=<JWT from nanoClaw /auth/login for a vetter service account>
+#   OLLAMA_URL=http://localhost:11434
 ```
 
-### First-time setup
+### Create the Hermes service account in nanoClaw
 
 ```bash
-# Copy profiles to Hermes runtime directory
-bash hermes-setup.sh
+# On the nanoClaw server:
+curl -X POST http://127.0.0.1:8000/auth/register \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"hermes-gepa","password":"STRONG_PW","role":"vetter","full_name":"Hermes GEPA"}'
 
-# Verify offline mode is active
-hermes --profile mps-main config get gateway.telegram.token
-# Expected: empty string
-
-hermes --profile mps-main config get skills.evolution.enabled
-# Expected: true
-
-hermes --profile mps-main config get mcp.servers
-# Expected: {}
+# Then login to get the token:
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -d 'username=hermes-gepa&password=STRONG_PW'
+# Paste the access_token into .env as MPS_HERMES_TOKEN
 ```
 
-### Verify skills loaded
+### Verify
 
 ```bash
-hermes --profile mps-main skills list
-# Expected: 8 SKILL files listed
+# Check Ollama is running
+curl http://localhost:11434/api/tags | grep llama
 
-hermes --profile mps-main chat
-# Test: "what is the income ceiling for CHAS Blue?"
-# Expected: $1,800/month household or $650 per capita
+# Check feedback endpoint is reachable
+curl http://127.0.0.1:8000/feedback/approved \
+  -H "Authorization: Bearer $MPS_HERMES_TOKEN"
+# Expected: [] or list of approved corrections
+
+# Check skills are present
+ls skills/
+# Expected: HDB.md  CPF.md  MSF.md  MOH.md  MOM.md  ICA.md  letter-format.md
 ```
 
 ---
 
-## Verification checklist
+## Weekly operation
 
-Before the first GEPA cycle:
+The GEPA cycle runs automatically on Sunday 2am via the cron schedule in `hermes-config.yaml`.
 
-- [ ] `hermes --version` returns a version number
-- [ ] `hermes --profile mps-main config get gateway.telegram.token` → empty
-- [ ] `hermes --profile mps-main config get mcp.servers` → `{}`
-- [ ] `hermes --profile mps-main skills list` → shows 8 SKILL files
-- [ ] `skills/auto/` directory exists and is writable
-- [ ] `hermes --profile mps-main chat` → policy questions answered correctly
-- [ ] `weekly-skill-update.sh` exists in `~/nanoclaw/` and is executable
-- [ ] `feedback-log.md` exists in `~/nanoclaw/groups/main/`
-- [ ] At least 5 feedback entries in feedback-log.md before first GEPA run
+To trigger manually:
+
+```bash
+# Run GEPA cycle now
+python3 -m hermes_gepa --profile mps-volunteers --run-now
+
+# Or, if using the Hermes CLI:
+hermes --profile mps-volunteers skills evolve --now
+```
+
+After the cycle:
+1. Check `skills/auto/` for generated improvements
+2. Review each file — verify no fabricated policy numbers
+3. If approved, move to `skills/` and commit to this repo
+4. nanoClaw loads updated SKILL files at next session
+
+### GEPA needs volume
+
+| Feedback count | Expected improvement |
+|---------------|---------------------|
+| 1–4 entries | No meaningful change |
+| 5–10 entries | First evolution cycle viable |
+| 15–20 entries | Measurable improvement in letter quality |
+| 50+ (over 3–4 months) | Significant skill specialisation |
+
+---
+
+## CRM Bridge
+
+`mcp-crm-server.py` is included for reference — the same server used by nanoClaw. In Hermes, the CRM bridge is **not wired** to any profile. Constituent case data remains exclusively in nanoClaw.
+
+---
+
+## Security
+
+| Control | How enforced |
+|---------|-------------|
+| No constituent data in Hermes | Vetter validates in nanoClaw before approval; API returns anonymised corrections only |
+| No cloud AI | Ollama runs on-premises — same instance as nanoClaw |
+| No API key | llama3.2:3b via Ollama — no Anthropic key required |
+| Feedback isolation | `data_isolation: strict` — GEPA extracts policy patterns, never stores raw feedback |
+| Human review | Every generated skill file must be manually approved before applying |
+| No live connections | All profiles set to offline mode — no Telegram/WhatsApp tokens |
 
 ---
 
@@ -256,61 +277,65 @@ mps-hermes-agent/
 ├── profiles/
 │   ├── mps-main/
 │   │   ├── SOUL.md               ← MP agent identity (offline reference)
-│   │   └── config.yaml           ← Offline mode config (no token, no CRM)
+│   │   └── config.yaml           ← Offline mode config
 │   ├── mps-volunteers/
-│   │   ├── SOUL.md               ← Volunteer agent identity (offline reference)
-│   │   └── config.yaml           ← Group Telegram mode template
+│   │   ├── SOUL.md               ← Volunteer agent identity
+│   │   ├── config.yaml           ← Offline mode config
+│   │   ├── hermes-config.yaml    ← GEPA config (Ollama, cron, feedback endpoint) ← NEW
+│   │   └── skills/               ← SKILL file stubs (improved weekly by GEPA) ← NEW
+│   │       ├── HDB.md
+│   │       ├── CPF.md
+│   │       ├── MSF.md
+│   │       ├── MOH.md
+│   │       ├── MOM.md
+│   │       ├── ICA.md
+│   │       └── letter-format.md
 │   └── mps-vetters/
-│       ├── SOUL.md               ← Vetter agent identity (offline reference)
+│       ├── SOUL.md               ← Vetter agent identity
 │       └── config.yaml           ← No CRM servers
 ├── skills/
-│   ├── SKILL-hdb.md              ← HDB grants, rental, eligibility, Fresh Start 2026
-│   ├── SKILL-cpf.md              ← CPF accounts, OW ceiling $8k, withdrawal, MRSS
-│   ├── SKILL-msf.md              ← ComCare tiers, Silver Support, SSO
-│   ├── SKILL-moh.md              ← CHAS, MediFund, MediShield, CareShield, PGP/MGP
-│   ├── SKILL-mom.md              ← Work passes, LTVP, TADM, retrenchment, Workfare
-│   ├── SKILL-ica.md              ← PR/citizenship, LTVP+, REP, 7-point appeal strategy
-│   ├── SKILL-letter.md           ← MP letter format, tone rules, 8 agency addresses
-│   ├── SKILL-feedback.md         ← /feedback command, GEPA capture, evolution workflow
-│   └── auto/                     ← GEPA-generated skills (review before applying)
+│   ├── SKILL-hdb.md              ← Full HDB policy reference (v1)
+│   ├── SKILL-cpf.md              ← Full CPF policy reference (v1)
+│   ├── SKILL-msf.md              ← Full MSF / ComCare reference (v1)
+│   ├── SKILL-moh.md              ← Full MOH / CHAS reference (v1)
+│   ├── SKILL-mom.md              ← Full MOM / work passes reference (v1)
+│   ├── SKILL-ica.md              ← Full ICA / PR / citizenship reference (v1)
+│   ├── SKILL-letter.md           ← MP letter format, tone rules, addresses (v1)
+│   ├── SKILL-feedback.md         ← Feedback workflow, GEPA evolution (v1)
+│   └── auto/                     ← GEPA-generated improvements (review before applying)
 ├── mcp-crm-server.py             ← CRM bridge reference (not wired in offline mode)
 ├── requirements-crm.txt
-├── hermes-setup.sh               ← Automated setup script
-├── OFFLINE-MODE.md               ← Offline configuration and security boundary reference
-├── .env.example
+├── hermes-setup.sh               ← Setup script
+├── OFFLINE-MODE.md               ← Offline configuration reference
+├── .env.example                  ← Template (copy to .env, add MPS_HERMES_TOKEN)
 ├── .gitignore
 └── README.md
 ```
-
-After setup, Hermes creates runtime files at `~/.hermes/profiles/<name>/` — not stored in this repo.
 
 ---
 
 ## Important notes
 
-1. **This system never handles constituent data.** No NRIC, no names, no addresses, no case records enter this system. The `weekly-skill-update.sh` PII scan enforces this with an automated check before every export.
+1. **This system never handles constituent data.** Only vetter-approved, anonymised policy corrections flow in. No NRIC, no names, no case IDs.
 
-2. **Review every GEPA output before applying.** Generated skill files in `skills/auto/` must be read and verified before being merged into nanoClaw's `CLAUDE.md`. Check for fabricated policy thresholds or any text resembling personal data.
+2. **Review every GEPA output before applying.** Generated skill files in `skills/auto/` must be read and verified before committing. Check for fabricated policy thresholds.
 
-3. **Policy accuracy.** Skill files are updated by GEPA based on your corrections. Always verify policy figures with the agency before sending a letter under the MP's name.
+3. **Policy accuracy.** Skill files are improved by GEPA based on MPS session corrections. Always verify policy figures with the official agency source before sending a letter under the MP's name.
 
-4. **GEPA needs volume.** The first meaningful evolution cycle requires at least 5 feedback entries. After 3–4 weekly cycles (15–20 corrections), improvement becomes measurable.
+4. **GEPA needs volume.** First meaningful improvement requires at least 5 approved feedback entries. After 3–4 weekly cycles, improvement becomes measurable.
 
-5. **Accumulation over time.** The longer you run the combined system, the better GEPA performs. After 6 months of real MPS sessions, `skills/auto/` will contain 20–40 case-specific patterns that meaningfully improve the agent's reasoning on common case types.
+5. **Ollama model choice.** `llama3.2:3b` runs on any modern laptop. `llama3.1:8b` gives better letter quality but needs 8GB+ RAM. Both are fully offline.
 
 ---
 
 ## References
 
-- [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) — production system
+- [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) — production GTK4 + FastAPI + Ollama system
 - [INTEGRATION.md](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw/blob/main/INTEGRATION.md) — combined workflow and security boundary
-- [OFFLINE-MODE.md](./OFFLINE-MODE.md) — offline config reference
-- [Hermes Agent docs](https://hermes-agent.nousresearch.com/docs)
-- [Hermes GitHub](https://github.com/NousResearch/hermes-agent)
-- [Anthropic Console](https://console.anthropic.com)
-- [HDB](https://www.hdb.gov.sg) · [CPF](https://www.cpf.gov.sg) · [MOM](https://www.mom.gov.sg) · [MOH](https://www.moh.gov.sg) · [MSF](https://www.msf.gov.sg) · [ICA](https://www.ica.gov.sg) · [IRAS](https://www.iras.gov.sg)
+- [OFFLINE-MODE.md](./OFFLINE-MODE.md) — offline configuration reference
+- [Ollama](https://ollama.com) — local LLM inference
+- [HDB](https://www.hdb.gov.sg) · [CPF](https://www.cpf.gov.sg) · [MOM](https://www.mom.gov.sg) · [MOH](https://www.moh.gov.sg) · [MSF](https://www.msf.gov.sg) · [ICA](https://www.ica.gov.sg)
 - [SupportGoWhere](https://supportgowhere.life.gov.sg)
-- [Singapore Budget Archive](https://singaporebudget.gov.sg)
 
 ---
 
