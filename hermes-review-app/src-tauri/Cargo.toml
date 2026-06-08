@@ -1,0 +1,25 @@
+[package]
+name = "hermes-review"
+version = "0.1.0"
+description = "Companion app for reviewing Hermes GEPA skill-improvement proposals before they're merged"
+edition = "2021"
+
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Same old-hardware constraint as the main client -- this is a small utility
+# app but there's no reason to waste RAM on a debug-sized binary.
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
