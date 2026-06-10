@@ -1,6 +1,8 @@
 # MPS-AI-Agent-Hermes — GEPA Skill Engine + Hermes Review App
 
-Hermes is the **offline improvement engine** for the nanoClaw MPS AI agent.
+Hermes is the **offline policy-change governance subsystem** for the nanoClaw MPS AI agent.
+
+> **Production hardening update - 10 June 2026:** The supported flow uses deterministic, source-backed JSON proposals, named human review, proposal SHA-256 binding, and manifested policy promotion. Telegram, conversational memory, direct active-policy mutation, and unapproved CRM writes are outside the production boundary. See [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md).
 
 It runs **once a week** (Sunday 2am) on the same server, reads vetted policy corrections collected during MPS nights, and updates the SKILL files that guide nanoClaw's letter generation. A **Tauri v2 desktop app** (`hermes-review-app`) provides a human review step — a reviewer sees before/after diffs for every proposed change and approves or rejects each one.
 

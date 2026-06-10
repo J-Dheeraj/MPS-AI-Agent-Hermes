@@ -1,86 +1,28 @@
-# Hermes profile config — Vetter team (mps-vetters)
-# Place at: ~/.hermes/profiles/mps-vetters/config.yaml
-#
-# Vetters fact-check and improve draft letters.
-# This profile has NO CRM access — vetters do not log cases or
-# look up constituent records. They only check policy accuracy and tone.
-#
-# After editing, restart the gateway:
-#   hermes --profile mps-vetters gateway start --daemon
-
-# ---------------------------------------------------------------------------
-# Model
-# ---------------------------------------------------------------------------
+# Hermes vetter policy profile (offline, production-safe template).
 
 model:
   provider: ollama
-  name: llama3.1:8b          # On-premises only. No cloud model may be used:
+  name: llama3.1:8b
   base_url: http://127.0.0.1:11434
-  # constituent data must never leave the LAN. llama3.2:3b is acceptable
-  # on memory-constrained machines (edit name above).
-
-# ---------------------------------------------------------------------------
-# Messaging gateway
-# ---------------------------------------------------------------------------
-#
-# SECURITY — DO NOT ADD A TELEGRAM TOKEN TO THIS PROFILE.
-#
-# This profile handles MPS case letters (vetter review and correction).
-# Letter content is constituent data. Constituent data must not leave the
-# LAN. Telegram is a third-party cloud service: enabling it here would
-# route letter content through Telegram's servers and violate the
-# on-premises privacy commitment.
-#
-# Use the NanoClaw Tauri desktop client (http://localhost:3080) for all
-# vetter interactions. The web UI runs entirely on-LAN.
-#
-# If you need remote access, use an on-LAN VPN, not a cloud bot.
 
 gateway:
   telegram:
-    token:           # Leave empty. See security note above.
-    allowed_users: []  # Leave empty.
+    token: ""
+    allowed_users: []
     allow_groups: false
-
-# ---------------------------------------------------------------------------
-# Skills — self-improvement
-# ---------------------------------------------------------------------------
-#
-# Evolution is disabled. Vetters interact with letter content that may
-# contain residual references to constituents. Allowing the GEPA engine to
-# capture tool-call history from these sessions risks persisting constituent
-# data inside skill files. Re-enable only after case-level namespace
-# isolation and PII filtering are in place.
 
 skills:
   evolution:
     enabled: false
+    auto_capture: false
   curator:
     enabled: false
-
-# ---------------------------------------------------------------------------
-# MCP servers — NONE
-# Vetters do not have access to constituent records or case management.
-# They verify policy facts and improve letter quality only.
-# ---------------------------------------------------------------------------
 
 mcp:
   servers: {}
 
-# ---------------------------------------------------------------------------
-# Memory settings
-# ---------------------------------------------------------------------------
-#
-# Memory is disabled. A vetter session processes case letters. Enabling
-# conversational memory risks cross-session persistence of case content.
-# Re-enable only after retention limits and PII expiry controls exist.
-
 memory:
   enabled: false
-
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 
 logging:
   level: info

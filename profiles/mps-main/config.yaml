@@ -57,8 +57,7 @@ mcp:
 # ---------------------------------------------------------------------------
 
 memory:
-  enabled: true
-  backend: local          # Stored in ~/.hermes/profiles/mps-main/memories/
+  enabled: false          # Feedback batches are files, not conversational memory
 
 # ---------------------------------------------------------------------------
 # Logging

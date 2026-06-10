@@ -11,9 +11,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 
 # Same old-hardware constraint as the main client -- this is a small utility
 # app but there's no reason to waste RAM on a debug-sized binary.

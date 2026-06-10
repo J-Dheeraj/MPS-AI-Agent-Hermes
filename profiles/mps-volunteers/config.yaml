@@ -1,75 +1,34 @@
-# Hermes profile config — Volunteer group (mps-volunteers)
-# Place at: ~/.hermes/profiles/mps-volunteers/config.yaml
-#
-# After editing, restart the gateway:
-#   hermes --profile mps-volunteers gateway start --daemon
-
-# ---------------------------------------------------------------------------
-# Model
-# ---------------------------------------------------------------------------
+# Hermes volunteer policy profile (offline, production-safe template).
+# Constituent-facing interactions belong in the authenticated nanoClaw client.
 
 model:
   provider: ollama
-  name: llama3.1:8b          # On-premises only. No cloud model may be used:
+  name: llama3.1:8b
   base_url: http://127.0.0.1:11434
-  # constituent data must never leave the LAN. llama3.2:3b is acceptable
-  # on memory-constrained machines (edit name above).
 
-# ---------------------------------------------------------------------------
-# Messaging gateway — Telegram group
-# ---------------------------------------------------------------------------
-
+# Third-party messaging is deliberately disabled. Do not add a Telegram token
+# to a profile that may process constituent or case information.
 gateway:
   telegram:
-    token: "YOUR_VOLUNTEER_BOT_TOKEN"     # From @BotFather → /newbot
-    allowed_users:
-      - "VOLUNTEER_1_TELEGRAM_ID"         # Add each volunteer's Telegram ID
-      - "VOLUNTEER_2_TELEGRAM_ID"         # Find via @userinfobot on Telegram
-      - "VOLUNTEER_3_TELEGRAM_ID"
-      # Add more volunteers as needed
-    allow_groups: true                     # Volunteers use a shared Telegram group
-    group_mode: mention_only               # Bot only responds when @mentioned
-
-# ---------------------------------------------------------------------------
-# Skills — self-improvement
-# ---------------------------------------------------------------------------
+    token: ""
+    allowed_users: []
+    allow_groups: false
 
 skills:
   evolution:
-    enabled: true
-    trigger_tool_calls: 5
+    enabled: false
+    auto_capture: false
   curator:
-    enabled: true
-    interval_days: 7
+    enabled: false
 
-# ---------------------------------------------------------------------------
-# MCP servers — CRM bridge (volunteers can create and look up cases)
-# ---------------------------------------------------------------------------
-
+# CRM access is not permitted from Hermes. All case operations go through
+# nanoClaw's authenticated, audited workflow service.
 mcp:
-  servers:
-    crm-bridge:
-      command: python3
-      args:
-        - "~/mps-hermes/mcp-crm-server.py"
-      env:
-        CRM_BACKEND: sqlite
-        CRM_DATA_DIR: ~/mps-hermes/crm-data
-        CRM_SQLITE_FILE: mps-cases.db
-        # Use the same backend as mps-main — they share one CRM database.
-        # If switching backend, update ALL profiles consistently.
+  servers: {}
 
-# ---------------------------------------------------------------------------
-# Memory settings
-# ---------------------------------------------------------------------------
-
+# Conversational memory is disabled to prevent cross-case persistence.
 memory:
-  enabled: true
-  backend: local          # Independent from mps-main memory
-
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
+  enabled: false
 
 logging:
   level: info

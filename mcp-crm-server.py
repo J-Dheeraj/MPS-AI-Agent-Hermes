@@ -16,7 +16,7 @@ for the full .env reference). Then wire this server into each Hermes
 profile's config.yaml under mcp.servers.
 
 Install:
-  pip install fastmcp python-dotenv requests gspread oauth2client \
+  pip install fastmcp python-dotenv requests gspread google-auth \
               Office365-REST-Python-Client
 
 Run:
@@ -27,9 +27,13 @@ Run:
 import os
 import sys
 import json
+import base64
+import hashlib
+import hmac
 import logging
 import sqlite3
 import datetime
+import time
 import csv
 import io
 from pathlib import Path
@@ -75,6 +79,16 @@ SP_LIST_NAME     = os.getenv("CRM_SP_LIST_NAME", "MPS Cases")
 CSV_CASES_PATH   = Path(os.getenv("CRM_CSV_CASES",   str(DATA_DIR / "cases.csv")))
 CSV_LETTERS_PATH = Path(os.getenv("CRM_CSV_LETTERS", str(DATA_DIR / "letters.csv")))
 
+# Writes are disabled unless an operator explicitly selects approval_required.
+# The bridge only receives the verification secret; agents have no tool that
+# can mint approval tokens.
+WRITE_MODE = os.getenv("CRM_WRITE_MODE", "disabled").lower().strip()
+APPROVAL_SECRET = os.getenv("CRM_APPROVAL_SECRET", "")
+if WRITE_MODE not in {"disabled", "approval_required"}:
+    raise RuntimeError("CRM_WRITE_MODE must be disabled or approval_required")
+if WRITE_MODE == "approval_required" and len(APPROVAL_SECRET) < 32:
+    raise RuntimeError("CRM_APPROVAL_SECRET must be at least 32 characters")
+
 # ---------------------------------------------------------------------------
 # FastMCP server
 # ---------------------------------------------------------------------------
@@ -98,6 +112,8 @@ def _sqlite_init():
     """Create tables if they do not exist."""
     con = sqlite3.connect(SQLITE_PATH)
     con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys = ON")
+    con.execute("PRAGMA busy_timeout = 5000")
     cur = con.cursor()
     cur.executescript("""
         CREATE TABLE IF NOT EXISTS constituents (
@@ -149,6 +165,7 @@ def _sqlite_lookup_constituent(nric: str = "", name: str = "") -> dict:
     elif name:
         cur.execute("SELECT * FROM constituents WHERE name LIKE ?", (f"%{name}%",))
     else:
+        con.close()
         return {"error": "Provide nric or name."}
     row = cur.fetchone()
     if not row:
@@ -204,6 +221,10 @@ def _sqlite_attach_letter(
 ) -> dict:
     con = _sqlite_init()
     cur = con.cursor()
+    cur.execute("SELECT 1 FROM cases WHERE id = ?", (case_id,))
+    if not cur.fetchone():
+        con.close()
+        return {"error": "Case not found."}
     cur.execute(
         "INSERT INTO letters (case_id, letter_text, addressed_to, letter_date) VALUES (?, ?, ?, ?)",
         (case_id, letter_text, addressed_to, letter_date),
@@ -236,6 +257,9 @@ def _sqlite_update_case_status(
            WHERE id = ?""",
         (status, notes, int(reply_received), int(reply_received), case_id),
     )
+    if cur.rowcount != 1:
+        con.close()
+        return {"error": "Case not found."}
     con.commit()
     con.close()
     return {"success": True, "case_id": case_id, "new_status": status}
@@ -286,14 +310,17 @@ def _sqlite_get_todays_queue() -> list:
 def _gsheets_client():
     try:
         import gspread
-        from oauth2client.service_account import ServiceAccountCredentials
+        from google.oauth2.service_account import Credentials
     except ImportError:
-        raise RuntimeError("Install gspread and oauth2client: pip install gspread oauth2client")
+        raise RuntimeError("Install gspread and google-auth: pip install gspread google-auth")
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name(GSHEET_CREDENTIALS_JSON, scope)
+    creds = Credentials.from_service_account_file(
+        GSHEET_CREDENTIALS_JSON,
+        scopes=scope,
+    )
     return gspread.authorize(creds)
 
 
@@ -731,6 +758,43 @@ import re as _re
 
 _MASKED_NRIC_RE = _re.compile(r"^[STFGM]\*{4}\d{3}[A-Z]$")
 _FULL_NRIC_RE   = _re.compile(r"^[STFGM]\d{7}[A-Z]$", _re.IGNORECASE)
+_VALID_URGENCIES = {"normal", "high", "urgent"}
+_VALID_STATUSES = {"open", "replied", "resolved", "closed", "escalated"}
+
+
+def _canonical_payload(payload: dict) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _approval_error(action: str, payload: dict, approval_token: str):
+    if WRITE_MODE == "disabled":
+        return {"error": "CRM writes are disabled by policy."}
+    if not approval_token:
+        return {"error": "A human approval token is required for this write."}
+    try:
+        encoded, supplied_signature = approval_token.split(".", 1)
+        padding = "=" * (-len(encoded) % 4)
+        raw = base64.urlsafe_b64decode(encoded + padding)
+        expected_signature = hmac.new(
+            APPROVAL_SECRET.encode("utf-8"), raw, hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected_signature, supplied_signature):
+            raise ValueError("signature mismatch")
+        claims = json.loads(raw.decode("utf-8"))
+        if claims.get("action") != action:
+            raise ValueError("action mismatch")
+        payload_hash = hashlib.sha256(_canonical_payload(payload).encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(str(claims.get("payload_sha256", "")), payload_hash):
+            raise ValueError("payload mismatch")
+        if int(claims.get("exp", 0)) < int(time.time()):
+            raise ValueError("token expired")
+        if int(claims.get("exp", 0)) > int(time.time()) + 900:
+            raise ValueError("token lifetime is too long")
+        if not str(claims.get("approved_by", "")).strip():
+            raise ValueError("missing approver")
+        return None
+    except Exception:
+        return {"error": "Invalid, expired, or mismatched human approval token."}
 
 def _check_masked_nric(nric: str):
     """Full NRICs are never accepted or stored anywhere in this system.
@@ -757,6 +821,8 @@ def lookup_constituent(nric: str = "", name: str = "") -> dict:
              "***" if nric else "-", name or "-")
     if not nric and not name:
         return {"error": "Provide nric (masked, S****567A) or name."}
+    if name and (len(name.strip()) < 3 or len(name.strip()) > 200):
+        return {"error": "Name search must be between 3 and 200 characters."}
     if nric:
         err = _check_masked_nric(nric)
         if err:
@@ -773,6 +839,7 @@ def create_case(
     summary: str,
     urgency: str = "normal",
     volunteer_name: str = "",
+    approval_token: str = "",
 ) -> dict:
     """
     Create a new MPS case for a constituent. Call this once the MP has
@@ -784,7 +851,27 @@ def create_case(
     err = _check_masked_nric(constituent_nric)
     if err:
         return err
-    return _fn["create_case"](constituent_nric.upper(), issue_type, agency, summary, urgency, volunteer_name)
+    urgency = urgency.strip().lower()
+    if urgency not in _VALID_URGENCIES:
+        return {"error": f"urgency must be one of {sorted(_VALID_URGENCIES)}"}
+    if not issue_type.strip() or len(issue_type) > 100:
+        return {"error": "issue_type must be between 1 and 100 characters."}
+    if not agency.strip() or len(agency) > 50:
+        return {"error": "agency must be between 1 and 50 characters."}
+    if not summary.strip() or len(summary) > 10_000:
+        return {"error": "summary must be between 1 and 10000 characters."}
+    payload = {
+        "constituent_nric": constituent_nric.upper(),
+        "issue_type": issue_type.strip(),
+        "agency": agency.strip().upper(),
+        "summary": summary.strip(),
+        "urgency": urgency,
+        "volunteer_name": volunteer_name.strip(),
+    }
+    approval_error = _approval_error("create_case", payload, approval_token)
+    if approval_error:
+        return approval_error
+    return _fn["create_case"](**payload)
 
 
 @mcp.tool()
@@ -793,6 +880,7 @@ def attach_letter(
     letter_text: str,
     addressed_to: str,
     letter_date: str = "",
+    approval_token: str = "",
 ) -> dict:
     """
     Attach a completed MP appeal letter to an existing case.
@@ -800,8 +888,25 @@ def attach_letter(
     """
     if not letter_date:
         letter_date = datetime.date.today().isoformat()
+    try:
+        datetime.date.fromisoformat(letter_date)
+    except ValueError:
+        return {"error": "letter_date must use YYYY-MM-DD format."}
+    if not letter_text.strip() or len(letter_text) > 20_000:
+        return {"error": "letter_text must be between 1 and 20000 characters."}
+    if not addressed_to.strip() or len(addressed_to) > 300:
+        return {"error": "addressed_to must be between 1 and 300 characters."}
+    payload = {
+        "case_id": case_id,
+        "letter_text": letter_text,
+        "addressed_to": addressed_to.strip(),
+        "letter_date": letter_date,
+    }
+    approval_error = _approval_error("attach_letter", payload, approval_token)
+    if approval_error:
+        return approval_error
     log.info("attach_letter case_id=%s to=%s date=%s", case_id, addressed_to, letter_date)
-    return _fn["attach_letter"](case_id, letter_text, addressed_to, letter_date)
+    return _fn["attach_letter"](**payload)
 
 
 @mcp.tool()
@@ -810,13 +915,28 @@ def update_case_status(
     status: str,
     notes: str = "",
     reply_received: bool = False,
+    approval_token: str = "",
 ) -> dict:
     """
     Update the status of a case.
     status: "open" | "replied" | "resolved" | "closed" | "escalated"
     """
+    status = status.strip().lower()
+    if status not in _VALID_STATUSES:
+        return {"error": f"status must be one of {sorted(_VALID_STATUSES)}"}
+    if len(notes) > 4_000:
+        return {"error": "notes must not exceed 4000 characters."}
+    payload = {
+        "case_id": case_id,
+        "status": status,
+        "notes": notes,
+        "reply_received": bool(reply_received),
+    }
+    approval_error = _approval_error("update_case_status", payload, approval_token)
+    if approval_error:
+        return approval_error
     log.info("update_case_status case_id=%s status=%s reply=%s", case_id, status, reply_received)
-    return _fn["update_case_status"](case_id, status, notes, reply_received)
+    return _fn["update_case_status"](**payload)
 
 
 @mcp.tool()
@@ -825,6 +945,8 @@ def get_pending_cases(days_overdue: int = 21) -> list:
     Return all open cases with no agency reply for N+ days.
     Used for weekly follow-up digest and pre-MPS briefing.
     """
+    if days_overdue < 1 or days_overdue > 3650:
+        return [{"error": "days_overdue must be between 1 and 3650."}]
     log.info("get_pending_cases days_overdue=%s", days_overdue)
     return _fn["get_pending_cases"](days_overdue)
 
@@ -845,9 +967,16 @@ def get_todays_queue() -> list:
 
 if __name__ == "__main__":
     if "--http" in sys.argv:
+        if os.getenv("MCP_ENABLE_HTTP", "false").lower() not in {"1", "true", "yes"}:
+            raise SystemExit("HTTP transport is disabled. Set MCP_ENABLE_HTTP=true explicitly.")
         port = int(os.getenv("MCP_PORT", "8000"))
-        log.info("Starting HTTP mode on port %s", port)
-        mcp.run(transport="http", host="0.0.0.0", port=port)
+        host = os.getenv("MCP_HOST", "127.0.0.1")
+        if host not in {"127.0.0.1", "localhost", "::1"}:
+            raise SystemExit(
+                "Remote MCP HTTP binding is prohibited. Use stdio or an authenticated TLS gateway."
+            )
+        log.info("Starting loopback-only HTTP mode on %s:%s", host, port)
+        mcp.run(transport="http", host=host, port=port)
     else:
         log.info("Starting stdio mode")
         mcp.run(transport="stdio")
