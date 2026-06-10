@@ -13,10 +13,11 @@
 # ---------------------------------------------------------------------------
 
 model:
-  provider: anthropic
-  name: claude-sonnet-4-5   # claude-opus-4 for highest accuracy on complex cases
-  # Hermes enforces a minimum of 64,000 context tokens.
-  # Both claude-sonnet-4-5 and claude-opus-4 exceed this requirement.
+  provider: ollama
+  name: llama3.1:8b          # On-premises only. No cloud model may be used:
+  base_url: http://127.0.0.1:11434
+  # constituent data must never leave the LAN. llama3.2:3b is acceptable
+  # on memory-constrained machines (edit name above).
 
 # ---------------------------------------------------------------------------
 # Messaging gateway — Telegram

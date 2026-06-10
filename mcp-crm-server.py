@@ -727,16 +727,41 @@ log.info("MPS CRM Bridge starting — backend: %s", BACKEND.upper())
 # MCP Tool definitions
 # ---------------------------------------------------------------------------
 
+import re as _re
+
+_MASKED_NRIC_RE = _re.compile(r"^[STFGM]\*{4}\d{3}[A-Z]$")
+_FULL_NRIC_RE   = _re.compile(r"^[STFGM]\d{7}[A-Z]$", _re.IGNORECASE)
+
+def _check_masked_nric(nric: str):
+    """Full NRICs are never accepted or stored anywhere in this system.
+    Only the masked form (S****567A) may be used as a constituent key.
+    Returns an error dict if invalid, else None."""
+    if _FULL_NRIC_RE.match(nric):
+        return {"error": "Full NRIC rejected. Use the masked form S****567A — "
+                         "full NRICs are never stored in this system."}
+    if not _MASKED_NRIC_RE.match(nric.upper()):
+        return {"error": "NRIC must be in masked form S****567A "
+                         "(first letter, four asterisks, last 3 digits, checksum letter)."}
+    return None
+
+
 @mcp.tool()
 def lookup_constituent(nric: str = "", name: str = "") -> dict:
     """
-    Look up a constituent by NRIC or name. Returns their profile and all
-    previous MPS cases with letters attached. Use this BEFORE the MP meets
-    a constituent — it gives the full case history for context.
+    Look up a constituent by masked NRIC (S****567A) or name. Returns their
+    profile and all previous MPS cases with letters attached. Use this BEFORE
+    the MP meets a constituent — it gives the full case history for context.
+    Full NRICs are rejected: only the masked form is accepted.
     """
-    log.info("lookup_constituent nric=%s name=%s", nric or "-", name or "-")
+    log.info("lookup_constituent nric=%s name=%s",
+             "***" if nric else "-", name or "-")
     if not nric and not name:
-        return {"error": "Provide nric or name."}
+        return {"error": "Provide nric (masked, S****567A) or name."}
+    if nric:
+        err = _check_masked_nric(nric)
+        if err:
+            return err
+        nric = nric.upper()
     return _fn["lookup_constituent"](nric=nric, name=name)
 
 
@@ -752,10 +777,14 @@ def create_case(
     """
     Create a new MPS case for a constituent. Call this once the MP has
     heard the constituent's problem and decided on a course of action.
+    constituent_nric must be MASKED (S****567A) — full NRICs are rejected.
     urgency: "urgent" | "high" | "normal"
     """
-    log.info("create_case nric=%s type=%s agency=%s urgency=%s", constituent_nric, issue_type, agency, urgency)
-    return _fn["create_case"](constituent_nric, issue_type, agency, summary, urgency, volunteer_name)
+    log.info("create_case nric=*** type=%s agency=%s urgency=%s", issue_type, agency, urgency)
+    err = _check_masked_nric(constituent_nric)
+    if err:
+        return err
+    return _fn["create_case"](constituent_nric.upper(), issue_type, agency, summary, urgency, volunteer_name)
 
 
 @mcp.tool()

@@ -13,7 +13,7 @@
 # Prerequisites:
 #   - WSL2 Ubuntu 22.04 running
 #   - Internet connection
-#   - Anthropic API key ready (sk-ant-...)
+#   - No API key needed: all inference runs on local Ollama
 #   - Three Telegram bot tokens from @BotFather
 
 set -e
@@ -75,19 +75,21 @@ fi
 # Phase 2 — Configure model (prompt for API key)
 # ---------------------------------------------------------------------------
 
-info "Configuring Hermes with Anthropic API..."
+info "Configuring Hermes with local Ollama (no cloud models, no API keys)..."
 echo ""
-echo "You need your Anthropic API key (starts with sk-ant-)."
-echo "Get one at: https://console.anthropic.com/settings/api-keys"
-echo ""
-read -p "Enter your Anthropic API key: " ANTHROPIC_KEY
-if [[ ! "$ANTHROPIC_KEY" == sk-ant-* ]]; then
-    warn "Key does not start with sk-ant- — double-check before proceeding."
+if ! command -v ollama >/dev/null 2>&1; then
+    info "Installing Ollama..."
+    curl -fsSL https://ollama.com/install.sh | sh
 fi
+if ! curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+    warn "Ollama is not responding on 127.0.0.1:11434 — start it with: ollama serve"
+fi
+info "Pulling llama3.1:8b (4.7GB — use llama3.2:3b on machines with <8GB RAM)..."
+ollama pull llama3.1:8b
 
-hermes setup --provider anthropic --api-key "$ANTHROPIC_KEY" --model claude-sonnet-4-5 --non-interactive 2>/dev/null || \
-    hermes setup --provider anthropic --api-key "$ANTHROPIC_KEY" --model claude-sonnet-4-5
-success "Model configured."
+hermes setup --provider ollama --model llama3.1:8b --base-url http://127.0.0.1:11434 --non-interactive 2>/dev/null || \
+    hermes setup --provider ollama --model llama3.1:8b --base-url http://127.0.0.1:11434
+success "Model configured (on-premises Ollama — constituent data never leaves the LAN)."
 
 # ---------------------------------------------------------------------------
 # Phase 3 — Create three MPS profiles
