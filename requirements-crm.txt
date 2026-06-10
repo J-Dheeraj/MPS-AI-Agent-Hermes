@@ -1,6 +1,10 @@
-fastmcp
-python-dotenv
-requests
-gspread
-oauth2client
-Office365-REST-Python-Client
+# Keep Hermes in an isolated environment. FastMCP 3 requires the newer HTTP
+# stack and conflicts with NanoClaw's currently pinned FastAPI test stack.
+fastmcp==3.4.2
+python-dotenv==1.1.1
+
+# Optional CRM adapters. Production constituent workflows keep MCP writes
+# disabled; install only the adapter that has been explicitly approved.
+requests==2.33.0
+gspread==6.2.1
+Office365-REST-Python-Client==2.6.2

@@ -1,36 +1,13 @@
-// Hermes skill-review companion app.
-//
-// Purpose: give an admin/vetter a lightweight desktop tool to review the
-// weekly batch of GEPA-proposed skill/prompt corrections *before* they're
-// folded into nanoClaw's letter-drafting prompts -- the human-review gate
-// the proposal calls for in section 13 ("Keep human review before final use").
-//
-// Expected on-disk layout (a folder the reviewer picks via the native dialog):
-//
-//   gepa-proposals/
-//     pending/    *.json   <- proposals waiting for a decision
-//     approved/   *.json   <- moved here on approve, plus a .decision.json sidecar
-//     rejected/   *.json   <- moved here on reject,  plus a .decision.json sidecar
-//
-// Each proposal JSON is expected to look roughly like:
-//   {
-//     "id": "2026-06-01-hdb-tone",
-//     "agency": "HDB",
-//     "issue": "Letter too casual",
-//     "correction": "Use formal agency-facing tone",
-//     "before": "...sample draft excerpt...",
-//     "after": "...corrected excerpt..."
-//   }
-//
-// All file I/O happens through tauri-plugin-fs / tauri-plugin-dialog, scoped
-// to whatever directory the reviewer explicitly opens -- nothing is read or
-// written outside that chosen folder.
-
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
+use sha2::{Digest, Sha256};
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::{Component, Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+const MAX_PROPOSAL_BYTES: u64 = 1_048_576;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct ProposalSummary {
@@ -44,107 +21,219 @@ struct ProposalSummary {
 struct ProposalDetail {
     raw: serde_json::Value,
     file_name: String,
+    sha256: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Decision {
-    decision: String, // "approved" | "rejected"
+    schema_version: u8,
+    decision: String,
+    reviewer_id: String,
     reviewer_note: Option<String>,
-    decided_at: String,
+    proposal_sha256: String,
+    decided_at_unix: u64,
 }
 
-fn pending_dir(base: &str) -> PathBuf {
-    Path::new(base).join("pending")
-}
-
-fn target_dir(base: &str, decision: &str) -> Result<PathBuf, String> {
-    match decision {
-        "approve" => Ok(Path::new(base).join("approved")),
-        "reject" => Ok(Path::new(base).join("rejected")),
-        other => Err(format!("Unknown decision '{other}' -- expected 'approve' or 'reject'")),
+fn canonical_root(base: &str) -> Result<PathBuf, String> {
+    let root = fs::canonicalize(base).map_err(|e| format!("Invalid review root: {e}"))?;
+    if !root.is_dir() {
+        return Err("Review root must be a directory".to_string());
     }
+    let pending = root.join("pending");
+    if !pending.is_dir() {
+        return Err("Review root must contain a pending directory".to_string());
+    }
+    Ok(root)
 }
 
-/// List pending proposals in `<base>/pending/*.json`. Malformed files are
-/// skipped (logged to stderr) rather than failing the whole listing -- one
-/// bad GEPA export shouldn't block reviewing the rest of the batch.
+fn safe_file_name(file_name: &str) -> Result<&str, String> {
+    let path = Path::new(file_name);
+    let mut components = path.components();
+    let only = components.next();
+    if components.next().is_some()
+        || !matches!(only, Some(Component::Normal(_)))
+        || path.file_name().and_then(|name| name.to_str()) != Some(file_name)
+        || path.extension().and_then(|ext| ext.to_str()) != Some("json")
+        || file_name.ends_with(".decision.json")
+    {
+        return Err("Invalid proposal file name".to_string());
+    }
+    Ok(file_name)
+}
+
+fn proposal_path(root: &Path, file_name: &str) -> Result<PathBuf, String> {
+    safe_file_name(file_name)?;
+    let pending = fs::canonicalize(root.join("pending"))
+        .map_err(|e| format!("Invalid pending directory: {e}"))?;
+    let candidate = fs::canonicalize(pending.join(file_name))
+        .map_err(|e| format!("Proposal not found: {e}"))?;
+    if !candidate.starts_with(&pending) || !candidate.is_file() {
+        return Err("Proposal path is outside pending".to_string());
+    }
+    Ok(candidate)
+}
+
+fn read_proposal_bytes(path: &Path) -> Result<Vec<u8>, String> {
+    let metadata = fs::metadata(path).map_err(|e| format!("Could not inspect proposal: {e}"))?;
+    if metadata.len() > MAX_PROPOSAL_BYTES {
+        return Err("Proposal exceeds the 1 MiB size limit".to_string());
+    }
+    fs::read(path).map_err(|e| format!("Could not read proposal: {e}"))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn target_dir(root: &Path, decision: &str) -> Result<PathBuf, String> {
+    let name = match decision {
+        "approve" => "approved",
+        "reject" => "rejected",
+        _ => return Err("Decision must be approve or reject".to_string()),
+    };
+    let directory = root.join(name);
+    fs::create_dir_all(&directory)
+        .map_err(|e| format!("Could not create {}: {e}", directory.display()))?;
+    Ok(directory)
+}
+
 #[tauri::command]
 fn list_pending(base_dir: String) -> Result<Vec<ProposalSummary>, String> {
-    let dir = pending_dir(&base_dir);
-    if !dir.exists() {
-        return Ok(vec![]);
-    }
-    let entries = fs::read_dir(&dir).map_err(|e| format!("Couldn't read {}: {e}", dir.display()))?;
+    let root = canonical_root(&base_dir)?;
+    let pending = root.join("pending");
+    let entries = fs::read_dir(&pending)
+        .map_err(|e| format!("Could not read {}: {e}", pending.display()))?;
 
     let mut out = Vec::new();
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if safe_file_name(file_name).is_err() {
             continue;
         }
-        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string();
-        match fs::read_to_string(&path).ok().and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok()) {
-            Some(v) => {
-                let id = v.get("id").and_then(|x| x.as_str()).unwrap_or(&file_name).to_string();
-                let agency = v.get("agency").and_then(|x| x.as_str()).unwrap_or("?").to_string();
-                let issue = v.get("issue").and_then(|x| x.as_str()).unwrap_or("(no issue summary)").to_string();
-                out.push(ProposalSummary { id, agency, issue, file_name });
-            }
-            None => eprintln!("Skipping malformed proposal file: {}", path.display()),
-        }
+        let Ok(bytes) = read_proposal_bytes(&path) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+            continue;
+        };
+        let id = value
+            .get("id")
+            .and_then(|item| item.as_str())
+            .unwrap_or(file_name)
+            .to_string();
+        let agency = value
+            .get("agency")
+            .and_then(|item| item.as_str())
+            .unwrap_or("?")
+            .to_string();
+        let issue = value
+            .get("issue")
+            .and_then(|item| item.as_str())
+            .unwrap_or("(no issue summary)")
+            .to_string();
+        out.push(ProposalSummary {
+            id,
+            agency,
+            issue,
+            file_name: file_name.to_string(),
+        });
     }
-    out.sort_by(|a, b| a.file_name.cmp(&b.file_name));
+    out.sort_by(|left, right| left.file_name.cmp(&right.file_name));
     Ok(out)
 }
 
-/// Read the full JSON body of one proposal so the UI can render a before/after diff.
 #[tauri::command]
 fn read_proposal(base_dir: String, file_name: String) -> Result<ProposalDetail, String> {
-    let path = pending_dir(&base_dir).join(&file_name);
-    let text = fs::read_to_string(&path).map_err(|e| format!("Couldn't read {}: {e}", path.display()))?;
-    let raw: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("Malformed JSON in {}: {e}", file_name))?;
-    Ok(ProposalDetail { raw, file_name })
+    let root = canonical_root(&base_dir)?;
+    let path = proposal_path(&root, &file_name)?;
+    let bytes = read_proposal_bytes(&path)?;
+    let raw = serde_json::from_slice::<serde_json::Value>(&bytes)
+        .map_err(|e| format!("Malformed proposal JSON: {e}"))?;
+    Ok(ProposalDetail {
+        raw,
+        file_name,
+        sha256: sha256_hex(&bytes),
+    })
 }
 
-/// Move a proposal out of `pending/` into `approved/` or `rejected/`, writing
-/// a `<name>.decision.json` sidecar alongside it with the reviewer's note and
-/// timestamp -- this is the audit trail for "who approved what, and why",
-/// mirroring the append-only review trail philosophy of mps_server.
 #[tauri::command]
-fn decide_proposal(base_dir: String, file_name: String, decision: String, reviewer_note: Option<String>) -> Result<(), String> {
-    let from = pending_dir(&base_dir).join(&file_name);
-    let to_dir = target_dir(&base_dir, &decision)?;
-    fs::create_dir_all(&to_dir).map_err(|e| format!("Couldn't create {}: {e}", to_dir.display()))?;
-    let to = to_dir.join(&file_name);
+fn decide_proposal(
+    base_dir: String,
+    file_name: String,
+    decision: String,
+    reviewer_id: String,
+    reviewer_note: Option<String>,
+) -> Result<(), String> {
+    let reviewer = reviewer_id.trim();
+    if reviewer.len() < 3 || reviewer.len() > 100 {
+        return Err("Reviewer ID must be between 3 and 100 characters".to_string());
+    }
+    if reviewer_note.as_ref().is_some_and(|note| note.len() > 2_000) {
+        return Err("Reviewer note must not exceed 2000 characters".to_string());
+    }
 
-    fs::rename(&from, &to).map_err(|e| format!("Couldn't move {} -> {}: {e}", from.display(), to.display()))?;
+    let root = canonical_root(&base_dir)?;
+    let source = proposal_path(&root, &file_name)?;
+    let proposal_bytes = read_proposal_bytes(&source)?;
+    serde_json::from_slice::<serde_json::Value>(&proposal_bytes)
+        .map_err(|e| format!("Malformed proposal JSON: {e}"))?;
 
-    let decision_label = if decision == "approve" { "approved" } else { "rejected" };
-    let sidecar = Decision {
-        decision: decision_label.to_string(),
+    let destination_dir = target_dir(&root, &decision)?;
+    let destination = destination_dir.join(safe_file_name(&file_name)?);
+    let sidecar_name = format!("{file_name}.decision.json");
+    let sidecar_destination = destination_dir.join(&sidecar_name);
+    if destination.exists() || sidecar_destination.exists() {
+        return Err("A decision for this proposal already exists".to_string());
+    }
+
+    let decision_record = Decision {
+        schema_version: 1,
+        decision: if decision == "approve" {
+            "approved".to_string()
+        } else {
+            "rejected".to_string()
+        },
+        reviewer_id: reviewer.to_string(),
         reviewer_note,
-        decided_at: chrono_now(),
+        proposal_sha256: sha256_hex(&proposal_bytes),
+        decided_at_unix: SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_secs(),
     };
-    let sidecar_path = to_dir.join(format!("{file_name}.decision.json"));
-    let body = serde_json::to_string_pretty(&sidecar).map_err(|e| e.to_string())?;
-    fs::write(&sidecar_path, body).map_err(|e| format!("Couldn't write {}: {e}", sidecar_path.display()))?;
+    let body = serde_json::to_vec_pretty(&decision_record).map_err(|e| e.to_string())?;
 
+    let temporary_sidecar = root
+        .join("pending")
+        .join(format!(".{file_name}.decision.tmp"));
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary_sidecar)
+        .map_err(|e| format!("Could not create decision record: {e}"))?;
+    file.write_all(&body)
+        .and_then(|_| file.sync_all())
+        .map_err(|e| format!("Could not persist decision record: {e}"))?;
+
+    if let Err(error) = fs::rename(&source, &destination) {
+        let _ = fs::remove_file(&temporary_sidecar);
+        return Err(format!("Could not move proposal: {error}"));
+    }
+    if let Err(error) = fs::rename(&temporary_sidecar, &sidecar_destination) {
+        let _ = fs::rename(&destination, &source);
+        let _ = fs::remove_file(&temporary_sidecar);
+        return Err(format!("Could not finalise decision record: {error}"));
+    }
     Ok(())
-}
-
-/// Minimal RFC3339-ish timestamp without pulling in a chrono dependency --
-/// good enough for an audit sidecar; Claude Code can swap in `chrono` if a
-/// stricter format is required downstream.
-fn chrono_now() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    format!("unix:{secs}")
 }
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             list_pending,
             read_proposal,
@@ -162,4 +251,22 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running Hermes Review");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_file_name;
+
+    #[test]
+    fn accepts_single_json_file_name() {
+        assert!(safe_file_name("hdb-proposal.json").is_ok());
+    }
+
+    #[test]
+    fn rejects_path_traversal_and_sidecars() {
+        assert!(safe_file_name("../outside.json").is_err());
+        assert!(safe_file_name("folder/inside.json").is_err());
+        assert!(safe_file_name("proposal.json.decision.json").is_err());
+        assert!(safe_file_name("proposal.md").is_err());
+    }
 }

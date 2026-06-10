@@ -23,6 +23,7 @@ const app = document.getElementById("app");
 let baseDir = localStorageGet(STORE_KEY);
 let queue = [];
 let selected = null;
+let reviewerId = "";
 
 function localStorageGet(key) {
   // NOTE: plain in-memory fallback -- browser storage APIs are deliberately
@@ -43,6 +44,7 @@ async function render() {
       <strong>Hermes Skill Review</strong>
       <span class="muted" id="dir-label">${baseDir ? escapeHtml(baseDir) : "No folder selected"}</span>
       <div class="spacer"></div>
+      <input id="reviewer-id" aria-label="Reviewer ID" placeholder="Reviewer ID" value="${escapeHtml(reviewerId)}" />
       <button id="pick-dir">Choose proposals folder…</button>
       <button id="refresh" ${baseDir ? "" : "disabled"}>Refresh</button>
     </div>
@@ -55,6 +57,9 @@ async function render() {
 
   shell.querySelector("#pick-dir").addEventListener("click", pickDirectory);
   shell.querySelector("#refresh").addEventListener("click", loadQueue);
+  shell.querySelector("#reviewer-id").addEventListener("input", (event) => {
+    reviewerId = event.target.value;
+  });
 
   if (baseDir) await loadQueue();
 }
@@ -119,6 +124,7 @@ async function openProposal(summary) {
     <div class="banner info">
       <strong>Learning point:</strong> ${escapeHtml(p.correction ?? "(none provided)")}
     </div>
+    <p class="muted" style="font-size:12px">Proposal SHA-256: <code>${escapeHtml(detail.sha256)}</code></p>
 
     <div class="diff-grid">
       <div>
@@ -151,6 +157,10 @@ async function openProposal(summary) {
 
 async function decide(decision) {
   if (!selected) return;
+  if (reviewerId.trim().length < 3) {
+    document.getElementById("decision-error").textContent = "Enter your reviewer ID before making a decision.";
+    return;
+  }
   const note = document.getElementById("note")?.value?.trim() || null;
   const errHost = document.getElementById("decision-error");
   const verb = decision === "approve" ? "approve" : "reject";
@@ -158,7 +168,13 @@ async function decide(decision) {
   if (!confirm(`${verb === "approve" ? "Approve" : "Reject"} this correction? It will be moved out of the pending queue.`)) return;
 
   try {
-    await invoke("decide_proposal", { baseDir, fileName: selected.file_name, decision, reviewerNote: note });
+    await invoke("decide_proposal", {
+      baseDir,
+      fileName: selected.file_name,
+      decision,
+      reviewerId: reviewerId.trim(),
+      reviewerNote: note,
+    });
     selected = null;
     document.getElementById("detail").innerHTML = `<p class="muted" style="padding:24px">Select a proposal to review.</p>`;
     await loadQueue();
@@ -168,5 +184,10 @@ async function decide(decision) {
 }
 
 function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
