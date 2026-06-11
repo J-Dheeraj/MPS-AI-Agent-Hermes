@@ -58,6 +58,22 @@ def _load_reviewer_registry() -> set[str] | None:
 
 
 def promote(review_root: Path, active_dir: Path) -> int:
+    # In production mode, both the reviewer registry and signing key are
+    # mandatory. An unsigned or unreviewed release must not reach production
+    # (V3-C4). Set HERMES_ENV=production before running any live promotion.
+    if os.getenv("HERMES_ENV", "").strip().lower() == "production":
+        missing = []
+        if not os.getenv("REVIEWER_REGISTRY", "").strip():
+            missing.append("REVIEWER_REGISTRY")
+        if not os.getenv("POLICY_SIGNING_KEY", "").strip():
+            missing.append("POLICY_SIGNING_KEY")
+        if missing:
+            raise RuntimeError(
+                f"HERMES_ENV=production requires these env vars to be set: "
+                f"{', '.join(missing)}. "
+                "Unsigned or un-registry-checked releases must not reach production."
+            )
+
     approved_dir = review_root / "approved"
     if not approved_dir.is_dir():
         raise ValueError("Review root does not contain an approved directory")
