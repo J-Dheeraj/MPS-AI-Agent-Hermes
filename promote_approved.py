@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+import policy_keys
+
 
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -40,11 +42,27 @@ def validate_source(source: dict) -> None:
     datetime.fromisoformat(str(source.get("effective_date", "")))
 
 
+def _load_reviewer_registry() -> set[str] | None:
+    """Approved reviewer identities. When REVIEWER_REGISTRY is set, a decision
+    sidecar reviewer_id must appear in it; this stops reviewer_id being an
+    unconstrained free-text field. The file is a JSON list of identity strings.
+    Returns None when no registry is configured (back-compat for dev)."""
+    registry_path = os.getenv("REVIEWER_REGISTRY", "").strip()
+    if not registry_path:
+        return None
+    data = json.loads(Path(registry_path).read_text(encoding="utf-8"))
+    identities = data.get("reviewers") if isinstance(data, dict) else data
+    if not isinstance(identities, list) or not all(isinstance(i, str) for i in identities):
+        raise ValueError("REVIEWER_REGISTRY must be a JSON list of reviewer ids")
+    return {i.strip() for i in identities if i.strip()}
+
+
 def promote(review_root: Path, active_dir: Path) -> int:
     approved_dir = review_root / "approved"
     if not approved_dir.is_dir():
         raise ValueError("Review root does not contain an approved directory")
     active_dir.mkdir(parents=True, exist_ok=True)
+    reviewer_registry = _load_reviewer_registry()
 
     promoted = 0
     for proposal_path in sorted(approved_dir.glob("*.json")):
@@ -61,8 +79,14 @@ def promote(review_root: Path, active_dir: Path) -> int:
             raise ValueError(f"Non-approved decision beside {proposal_path.name}")
         if decision.get("proposal_sha256") != sha256_hex(proposal_bytes):
             raise ValueError(f"Proposal hash mismatch for {proposal_path.name}")
-        if not str(decision.get("reviewer_id", "")).strip():
+        reviewer_id = str(decision.get("reviewer_id", "")).strip()
+        if not reviewer_id:
             raise ValueError(f"Missing reviewer identity for {proposal_path.name}")
+        if reviewer_registry is not None and reviewer_id not in reviewer_registry:
+            raise ValueError(
+                f"Reviewer {reviewer_id!r} is not in the approved registry "
+                f"(for {proposal_path.name})"
+            )
         if proposal.get("schema_version") != 1:
             raise ValueError(f"Unsupported proposal schema for {proposal_path.name}")
         validate_source(proposal.get("source") or {})
@@ -102,7 +126,30 @@ def promote(review_root: Path, active_dir: Path) -> int:
             if path.name != "manifest.json"
         ],
     }
-    atomic_json_write(active_dir / "manifest.json", manifest)
+    # Sign the manifest with the managed release key (Ed25519). NanoClaw will
+    # refuse to load a manifest whose signature does not verify against the
+    # public key it trusts, so a forged manifest recomputed by someone with
+    # only filesystem access is rejected. POLICY_SIGNING_KEY points at the
+    # private key PEM; it lives outside the repo and the policy volumes.
+    signing_key_path = os.getenv("POLICY_SIGNING_KEY", "").strip()
+    if signing_key_path:
+        private_key = policy_keys.load_private_key(signing_key_path)
+        manifest["key_id"] = policy_keys.key_id(private_key.public_key())
+        manifest_path = active_dir / "manifest.json"
+        atomic_json_write(manifest_path, manifest)
+        manifest_bytes = manifest_path.read_bytes()
+        sidecar = {
+            "schema_version": 1,
+            "key_id": manifest["key_id"],
+            "algorithm": "ed25519",
+            "signature": policy_keys.sign(private_key, manifest_bytes),
+            "signed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        atomic_json_write(active_dir / "manifest.json.sig", sidecar)
+    else:
+        # Unsigned (development only). NanoClaw started with POLICY_PUBLIC_KEY
+        # set will reject this manifest, which is the intended fail-closed path.
+        atomic_json_write(active_dir / "manifest.json", manifest)
     return promoted
 
 

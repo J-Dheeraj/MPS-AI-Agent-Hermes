@@ -23,9 +23,9 @@ jobs:
           # key (it only matches **/requirements.txt by default) and the job
           # fails at the setup-python step.
           cache-dependency-path: requirements-crm.txt
-      - run: python -m pip install --disable-pip-version-check fastmcp==3.4.2 python-dotenv==1.1.1 pytest==8.2.2
+      - run: python -m pip install --disable-pip-version-check fastmcp==3.4.2 python-dotenv==1.1.1 pytest==8.2.2 cryptography>=42
       - run: python -m pip check
-      - run: python -m compileall -q hermes.py promote_approved.py crm_approval.py mcp-crm-server.py
+      - run: python -m compileall -q hermes.py promote_approved.py crm_approval.py mcp-crm-server.py policy_keys.py
       - run: python -m pytest -q
 
   review-app:

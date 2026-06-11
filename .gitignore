@@ -40,3 +40,8 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Policy release signing keys — never commit private keys
+*.pem
+policy-signing-key*
+REVIEWER_REGISTRY*.json
