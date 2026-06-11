@@ -103,6 +103,20 @@ def promote(review_root: Path, active_dir: Path) -> int:
                 f"Reviewer {reviewer_id!r} is not in the approved registry "
                 f"(for {proposal_path.name})"
             )
+        # V4-C5: in production the typed reviewer_id must be authenticated,
+        # not just allowlisted. The decision sidecar must be OWNED by the OS
+        # account named in reviewer_id — file ownership cannot be forged
+        # without root, so this binds the decision to a logged-in identity.
+        # Registry entries are therefore OS account names in production.
+        if os.getenv("HERMES_ENV", "").strip().lower() == "production":
+            import pwd
+            owner = pwd.getpwuid(decision_path.stat().st_uid).pw_name
+            if owner != reviewer_id:
+                raise ValueError(
+                    f"Decision for {proposal_path.name} is owned by OS user "
+                    f"{owner!r} but claims reviewer {reviewer_id!r}; reviewer "
+                    f"identity must match the account that recorded the decision"
+                )
         if proposal.get("schema_version") != 1:
             raise ValueError(f"Unsupported proposal schema for {proposal_path.name}")
         validate_source(proposal.get("source") or {})

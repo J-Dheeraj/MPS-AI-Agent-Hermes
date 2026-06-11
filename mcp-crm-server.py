@@ -766,16 +766,34 @@ def _canonical_payload(payload: dict) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
-# V-H11: approval tokens are one-time. Consumed token ids are held in-process
-# until their expiry; tokens are capped at 900s TTL so this set is bounded.
-# Process-local is acceptable for the single-host deployment, matching the
-# existing rate-limit design.
-_consumed_jti: dict = {}  # jti -> exp epoch seconds
+# V-H11/V4-C4: approval tokens are one-time. Consumed token ids are stored in
+# SQLite under CRM_DATA_DIR so consumption is atomic (UNIQUE constraint) and
+# survives restarts and concurrent processes. Rows are pruned once expired;
+# tokens are capped at 900s TTL so the table stays small.
+_CONSUMED_DB = os.path.join(DATA_DIR, "consumed_approvals.db")
 
 
-def _prune_consumed(now: int) -> None:
-    for jti in [j for j, exp in _consumed_jti.items() if exp < now]:
-        del _consumed_jti[jti]
+def _consumed_conn():
+    conn = sqlite3.connect(_CONSUMED_DB, timeout=10)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS consumed_jti "
+        "(jti TEXT PRIMARY KEY, exp INTEGER NOT NULL)"
+    )
+    return conn
+
+
+def _consume_jti(jti: str, exp: int, now: int) -> bool:
+    """Atomically consume a token id. Returns False if already used."""
+    conn = _consumed_conn()
+    try:
+        conn.execute("DELETE FROM consumed_jti WHERE exp < ?", (now,))
+        conn.execute("INSERT INTO consumed_jti (jti, exp) VALUES (?, ?)", (jti, exp))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
 
 
 def _approval_error(action: str, payload: dict, approval_token: str):
@@ -808,10 +826,8 @@ def _approval_error(action: str, payload: dict, approval_token: str):
         if not jti:
             raise ValueError("token has no one-time identifier")
         now = int(time.time())
-        _prune_consumed(now)
-        if jti in _consumed_jti:
+        if not _consume_jti(jti, int(claims["exp"]), now):
             raise ValueError("token already used")
-        _consumed_jti[jti] = int(claims["exp"])
         return None
     except Exception:
         return {"error": "Invalid, expired, or mismatched human approval token."}

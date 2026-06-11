@@ -69,3 +69,19 @@ def test_token_without_jti_rejected(monkeypatch, tmp_path):
     sig = hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
     out = module._approval_error("update_case_status", payload, f"{encoded}.{sig}")
     assert out is not None and "error" in out
+
+
+def test_replay_rejected_across_restart(monkeypatch, tmp_path):
+    """V4-C4: consumption must survive process restart (module reload)."""
+    secret = "approval-secret-with-at-least-thirty-two-characters"
+    monkeypatch.setenv("CRM_APPROVAL_SECRET", secret)
+    monkeypatch.setenv("CRM_WRITE_MODE", "approval_required")
+    monkeypatch.setenv("CRM_DATA_DIR", str(tmp_path))
+    module = load_crm_module()
+    payload = {"case_id": 4, "status": "closed", "notes": "x", "reply_received": True}
+    token = mint_token("update_case_status", payload, "supervisor-1", 300)
+    assert module._approval_error("update_case_status", payload, token) is None
+    # Simulate a restart: fresh module, same data directory.
+    module2 = load_crm_module()
+    replay = module2._approval_error("update_case_status", payload, token)
+    assert replay is not None and "error" in replay
