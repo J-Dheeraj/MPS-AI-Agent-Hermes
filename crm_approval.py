@@ -11,6 +11,7 @@ import hmac
 import json
 import os
 import time
+import uuid
 
 
 def canonical_payload(payload: dict) -> str:
@@ -27,6 +28,7 @@ def mint_token(action: str, payload: dict, approved_by: str, ttl_seconds: int) -
         raise SystemExit("approved_by is required")
 
     claims = {
+        "jti": uuid.uuid4().hex,
         "action": action,
         "payload_sha256": hashlib.sha256(
             canonical_payload(payload).encode("utf-8")

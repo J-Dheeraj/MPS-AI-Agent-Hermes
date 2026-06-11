@@ -766,6 +766,18 @@ def _canonical_payload(payload: dict) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
+# V-H11: approval tokens are one-time. Consumed token ids are held in-process
+# until their expiry; tokens are capped at 900s TTL so this set is bounded.
+# Process-local is acceptable for the single-host deployment, matching the
+# existing rate-limit design.
+_consumed_jti: dict = {}  # jti -> exp epoch seconds
+
+
+def _prune_consumed(now: int) -> None:
+    for jti in [j for j, exp in _consumed_jti.items() if exp < now]:
+        del _consumed_jti[jti]
+
+
 def _approval_error(action: str, payload: dict, approval_token: str):
     if WRITE_MODE == "disabled":
         return {"error": "CRM writes are disabled by policy."}
@@ -792,6 +804,14 @@ def _approval_error(action: str, payload: dict, approval_token: str):
             raise ValueError("token lifetime is too long")
         if not str(claims.get("approved_by", "")).strip():
             raise ValueError("missing approver")
+        jti = str(claims.get("jti", "")).strip()
+        if not jti:
+            raise ValueError("token has no one-time identifier")
+        now = int(time.time())
+        _prune_consumed(now)
+        if jti in _consumed_jti:
+            raise ValueError("token already used")
+        _consumed_jti[jti] = int(claims["exp"])
         return None
     except Exception:
         return {"error": "Invalid, expired, or mismatched human approval token."}
