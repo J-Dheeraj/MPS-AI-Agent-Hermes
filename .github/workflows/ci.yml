@@ -18,6 +18,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          # requirements-crm.txt is the only Python dependency manifest in the
+          # repo root; without this path setup-python cannot resolve a pip cache
+          # key (it only matches **/requirements.txt by default) and the job
+          # fails at the setup-python step.
+          cache-dependency-path: requirements-crm.txt
       - run: python -m pip install --disable-pip-version-check fastmcp==3.4.2 python-dotenv==1.1.1 pytest==8.2.2
       - run: python -m pip check
       - run: python -m compileall -q hermes.py promote_approved.py crm_approval.py mcp-crm-server.py
