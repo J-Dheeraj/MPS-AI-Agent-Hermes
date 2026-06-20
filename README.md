@@ -1,5 +1,7 @@
 # MPS-AI-Agent-Hermes — GEPA Skill Engine + Hermes Review App
 
+> **Architecture reconciliation (2026-06-20).** The production policy mechanism is **deterministic, Ed25519-signed JSON policy rules** loaded by the server's `policy_store` from `POLICY_DIR` (manifest + per-rule JSON, validity/supersession/relevance ranking). The legacy "GEPA skill engine" framing and "Markdown SKILL files injected into the prompt" descriptions below are **superseded**: no Markdown skill is injected into letter generation, and proposal generation is deterministic (no LLM converts corrections into policy). "GEPA" persists only as a product name for the deterministic proposal -> human review -> signed promotion pipeline.
+
 Hermes is the **offline policy-change governance subsystem** for the nanoClaw MPS AI agent.
 
 > **Production hardening update - 10 June 2026:** The supported flow uses deterministic, source-backed JSON proposals, named human review, proposal SHA-256 binding, and manifested policy promotion. Telegram, conversational memory, direct active-policy mutation, and unapproved CRM writes are outside the production boundary. See [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md).
@@ -163,7 +165,7 @@ AT NEXT MPS SESSION
 
 ## SKILL files explained
 
-SKILL files are plain Markdown documents stored in `skills/`. Each file covers one domain (agency or topic). They are injected into nanoClaw's system prompt before every letter generation call.
+**Legacy mechanism (superseded).** SKILL files were plain Markdown documents in `skills/`, one per domain. In the supported production path they are **not** injected into letter generation: the server loads deterministic Ed25519-signed JSON policy rules via `policy_store` (`POLICY_DIR`/manifest). The review/promotion tooling now emits and signs JSON policy rules, not Markdown prompt fragments.
 
 ### File naming
 
