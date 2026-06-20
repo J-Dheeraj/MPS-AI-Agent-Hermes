@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
 import policy_keys
 
 
@@ -51,10 +54,45 @@ def _load_reviewer_registry() -> set[str] | None:
     if not registry_path:
         return None
     data = json.loads(Path(registry_path).read_text(encoding="utf-8"))
-    identities = data.get("reviewers") if isinstance(data, dict) else data
-    if not isinstance(identities, list) or not all(isinstance(i, str) for i in identities):
-        raise ValueError("REVIEWER_REGISTRY must be a JSON list of reviewer ids")
-    return {i.strip() for i in identities if i.strip()}
+    identities = data.get("reviewers", data) if isinstance(data, dict) else data
+    # Signed mode (C2): a mapping reviewer_id -> Ed25519 public key PEM. The
+    # decision sidecar must carry a signature verifiable with this key. This
+    # replaces the Unix file-owner check, which did not exist on Windows where
+    # the reviewer app runs.
+    if isinstance(identities, dict):
+        return {
+            str(k).strip(): _load_pubkey_pem(v)
+            for k, v in identities.items() if str(k).strip()
+        }
+    # Allowlist-only mode (dev back-compat): a list of ids, signing unenforced.
+    if isinstance(identities, list) and all(isinstance(i, str) for i in identities):
+        return {i.strip() for i in identities if i.strip()}
+    raise ValueError(
+        "REVIEWER_REGISTRY must be a JSON list of reviewer ids (dev) or a "
+        "mapping reviewer_id -> Ed25519 public key PEM (production/signed)")
+
+
+def decision_signing_payload(decision: dict) -> bytes:
+    """Canonical bytes a reviewer signs to authenticate a decision (C2).
+    Reused by promote() verification, the CLI signer and the tests so the
+    signed content is identical on every platform."""
+    return json.dumps(
+        {
+            "reviewer_id": str(decision.get("reviewer_id", "")),
+            "proposal_sha256": str(decision.get("proposal_sha256", "")),
+            "decision": str(decision.get("decision", "")),
+            "decided_at_unix": int(decision.get("decided_at_unix", 0)),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _load_pubkey_pem(pem: str) -> Ed25519PublicKey:
+    key = serialization.load_pem_public_key(pem.encode("utf-8"))
+    if not isinstance(key, Ed25519PublicKey):
+        raise ValueError("Reviewer registry public key must be Ed25519")
+    return key
 
 
 def promote(review_root: Path, active_dir: Path) -> int:
@@ -103,20 +141,34 @@ def promote(review_root: Path, active_dir: Path) -> int:
                 f"Reviewer {reviewer_id!r} is not in the approved registry "
                 f"(for {proposal_path.name})"
             )
-        # V4-C5: in production the typed reviewer_id must be authenticated,
-        # not just allowlisted. The decision sidecar must be OWNED by the OS
-        # account named in reviewer_id — file ownership cannot be forged
-        # without root, so this binds the decision to a logged-in identity.
-        # Registry entries are therefore OS account names in production.
+        # C2: in production the typed reviewer_id must be cryptographically
+        # authenticated. The decision sidecar carries an Ed25519 signature over
+        # its canonical content; we verify it against the reviewer's registered
+        # public key. This works identically on Windows and Linux (the previous
+        # Unix file-owner check did not exist on Windows, where the reviewer
+        # app runs).
         if os.getenv("HERMES_ENV", "").strip().lower() == "production":
-            import pwd
-            owner = pwd.getpwuid(decision_path.stat().st_uid).pw_name
-            if owner != reviewer_id:
+            if not isinstance(reviewer_registry, dict):
                 raise ValueError(
-                    f"Decision for {proposal_path.name} is owned by OS user "
-                    f"{owner!r} but claims reviewer {reviewer_id!r}; reviewer "
-                    f"identity must match the account that recorded the decision"
-                )
+                    "Production REVIEWER_REGISTRY must map reviewer_id -> "
+                    "Ed25519 public key PEM so decisions can be signature-verified")
+            pubkey = reviewer_registry.get(reviewer_id)
+            if pubkey is None:
+                raise ValueError(
+                    f"Reviewer {reviewer_id!r} has no registered public key "
+                    f"(for {proposal_path.name})")
+            signature = str(decision.get("signature", "")).strip()
+            if not signature:
+                raise ValueError(
+                    f"Decision for {proposal_path.name} is not signed by "
+                    f"reviewer {reviewer_id!r}")
+            try:
+                policy_keys.verify(
+                    pubkey, decision_signing_payload(decision), signature)
+            except policy_keys.PolicyKeyError as exc:
+                raise ValueError(
+                    f"Decision signature for {proposal_path.name} is invalid "
+                    f"(reviewer {reviewer_id!r}): {exc}")
         if proposal.get("schema_version") != 1:
             raise ValueError(f"Unsupported proposal schema for {proposal_path.name}")
         validate_source(proposal.get("source") or {})
