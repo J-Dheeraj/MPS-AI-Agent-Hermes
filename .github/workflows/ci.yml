@@ -71,8 +71,8 @@ jobs:
           path: pip-audit.json
       - name: Generate SBOM and scan (syft + grype)
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v1.0.0
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.114.0
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/v1.0.0/install.sh | sh -s -- -b /usr/local/bin v1.0.0
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/v0.114.0/install.sh | sh -s -- -b /usr/local/bin v0.114.0
           syft dir:. --output cyclonedx-json=sbom.json
           # v7 C4: fail closed. Require a fresh DB; do not disable age validation
           # or ignore db-update failure (a stale DB must not produce a green scan).

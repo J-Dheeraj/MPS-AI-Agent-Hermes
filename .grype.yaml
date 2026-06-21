@@ -1,4 +1,4 @@
-# Grype configuration for the Hermes dependency/SBOM gate (v7).
+# Grype configuration for the Hermes dependency/SBOM gate (v7; metadata v8).
 #
 # The scan is FAIL-CLOSED for every production dependency. The single ignore
 # below is a documented, narrowly-scoped accepted risk — not a fail-open switch.
@@ -7,9 +7,14 @@
 #   - Scope: vite is a devDependency build tool of hermes-review-app's frontend
 #     ("vite": "^5"). The shipped Tauri artifact is the pre-built static bundle
 #     plus the Rust binary; the vite dev server is NOT part of any production
-#     artifact, so production runtime exposure is nil.
-#   - Fix: vite 6.4.3 (a major bump from the pinned ^5). It requires the npm/node
-#     toolchain to regenerate package-lock.json and build-test the frontend,
-#     which is tracked as a follow-up. Remove this ignore once vite is on >=6.4.3.
+#     artifact, so production runtime exposure is nil. Developer workstations
+#     remain within the advisory's threat model until the upgrade lands.
+#   - Fix: vite >=6.4.3 (a major bump from the pinned ^5). Requires the npm/node
+#     toolchain to regenerate package-lock.json and build-test the frontend.
+#   - owner: repo maintainer (J-Dheeraj)
+#   - accepted: 2026-06-21
+#   - expires: 2026-09-19  (90 days; re-review or remove by this date)
+#   - follow-up: spawned task "Bump vite to >=6.4.3 in hermes-review-app" —
+#     remove this ignore once vite is on >=6.4.3.
 ignore:
   - vulnerability: GHSA-fx2h-pf6j-xcff
