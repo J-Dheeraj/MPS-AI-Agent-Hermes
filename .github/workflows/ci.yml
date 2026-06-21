@@ -72,10 +72,12 @@ jobs:
       - name: Generate SBOM and scan (syft + grype)
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v1.0.0
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.77.0
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.114.0
           syft dir:. --output cyclonedx-json=sbom.json
           # v7 C4: fail closed. Require a fresh DB; do not disable age validation
           # or ignore db-update failure (a stale DB must not produce a green scan).
+          # grype >=0.80 uses the maintained DB v6 feed (the schema-v5 feed used
+          # by <=0.77 is frozen ~14 weeks stale and always fails the age check).
           grype db update
           grype sbom:sbom.json --fail-on high --output json > grype-results.json
       - name: Upload SBOM and scan results
