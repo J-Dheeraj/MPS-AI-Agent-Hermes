@@ -6,6 +6,6 @@ cryptography>=42        # Ed25519 policy-manifest signing (policy_keys.py)
 
 # Optional CRM adapters. Production constituent workflows keep MCP writes
 # disabled; install only the adapter that has been explicitly approved.
-requests==2.33.0
+requests==2.34.2
 gspread==6.2.1
 Office365-REST-Python-Client==2.6.2
