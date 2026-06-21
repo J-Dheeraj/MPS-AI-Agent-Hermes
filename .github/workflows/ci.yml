@@ -71,8 +71,16 @@ jobs:
           path: pip-audit.json
       - name: Generate SBOM and scan (syft + grype)
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/v1.0.0/install.sh | sh -s -- -b /usr/local/bin v1.0.0
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/v0.114.0/install.sh | sh -s -- -b /usr/local/bin v0.114.0
+          # v9: download the pinned installer and verify its sha256 before running
+          # it (no unchecked curl|sh). Pinned to the v1.0.0 release script.
+          curl -sSfL -o /tmp/syft-install.sh https://raw.githubusercontent.com/anchore/syft/v1.0.0/install.sh
+          echo "39e6c5df8895b91e1b925af3f2ab1571c99140e88cfa472bd64bba5637319e67  /tmp/syft-install.sh" | sha256sum -c -
+          sh /tmp/syft-install.sh -b /usr/local/bin v1.0.0
+          # v9: download the pinned installer and verify its sha256 before running
+          # it (no unchecked curl|sh). Pinned to the v0.114.0 release script.
+          curl -sSfL -o /tmp/grype-install.sh https://raw.githubusercontent.com/anchore/grype/v0.114.0/install.sh
+          echo "8646f06a90b10ca64992c1809b4aa00c44e30b4f551f63c309b0b0ab66873556  /tmp/grype-install.sh" | sha256sum -c -
+          sh /tmp/grype-install.sh -b /usr/local/bin v0.114.0
           syft dir:. --output cyclonedx-json=sbom.json
           # v7 C4: fail closed. Require a fresh DB; do not disable age validation
           # or ignore db-update failure (a stale DB must not produce a green scan).
