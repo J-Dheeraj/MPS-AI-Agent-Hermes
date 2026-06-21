@@ -1,0 +1,15 @@
+# Grype configuration for the Hermes dependency/SBOM gate (v7).
+#
+# The scan is FAIL-CLOSED for every production dependency. The single ignore
+# below is a documented, narrowly-scoped accepted risk — not a fail-open switch.
+#
+# GHSA-fx2h-pf6j-xcff (vite <=6.4.2): a vite *dev server* file-serving issue.
+#   - Scope: vite is a devDependency build tool of hermes-review-app's frontend
+#     ("vite": "^5"). The shipped Tauri artifact is the pre-built static bundle
+#     plus the Rust binary; the vite dev server is NOT part of any production
+#     artifact, so production runtime exposure is nil.
+#   - Fix: vite 6.4.3 (a major bump from the pinned ^5). It requires the npm/node
+#     toolchain to regenerate package-lock.json and build-test the frontend,
+#     which is tracked as a follow-up. Remove this ignore once vite is on >=6.4.3.
+ignore:
+  - vulnerability: GHSA-fx2h-pf6j-xcff
