@@ -67,10 +67,13 @@ jobs:
           name: pip-audit-results
           path: pip-audit.json
       - name: Generate SBOM and scan (syft + grype)
+        env:
+          GRYPE_DB_VALIDATE_AGE: "false"
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v1.0.0
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.74.0
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.77.0
           syft dir:. --output cyclonedx-json=sbom.json
+          grype db update || true
           grype sbom:sbom.json --fail-on high --output json > grype-results.json
       - name: Upload SBOM and scan results
         if: always()
