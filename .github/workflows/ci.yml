@@ -23,7 +23,10 @@ jobs:
           # key (it only matches **/requirements.txt by default) and the job
           # fails at the setup-python step.
           cache-dependency-path: requirements-crm.txt
-      - run: python -m pip install --disable-pip-version-check fastmcp==3.4.2 python-dotenv==1.1.1 pytest==8.2.2 cryptography>=42
+      # v7 I#1: install the DECLARED production set so CI tests what ships
+      # (requirements-crm.txt pins python-dotenv==1.2.2, not the old 1.1.1).
+      # pytest is the only test-only addition.
+      - run: python -m pip install --disable-pip-version-check -r requirements-crm.txt pytest==8.2.2
       - run: python -m pip check
       - run: python -m compileall -q hermes.py promote_approved.py crm_approval.py mcp-crm-server.py policy_keys.py
       - run: python -m pytest -q
@@ -67,13 +70,13 @@ jobs:
           name: pip-audit-results
           path: pip-audit.json
       - name: Generate SBOM and scan (syft + grype)
-        env:
-          GRYPE_DB_VALIDATE_AGE: "false"
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v1.0.0
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.77.0
           syft dir:. --output cyclonedx-json=sbom.json
-          grype db update || true
+          # v7 C4: fail closed. Require a fresh DB; do not disable age validation
+          # or ignore db-update failure (a stale DB must not produce a green scan).
+          grype db update
           grype sbom:sbom.json --fail-on high --output json > grype-results.json
       - name: Upload SBOM and scan results
         if: always()
