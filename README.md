@@ -4,11 +4,11 @@
 
 Hermes is the **offline policy-change governance subsystem** for the nanoClaw MPS AI agent.
 
-> **Production readiness — 2026-06-23.** Independent architecture/security reviews score the overall MPS-AI-Agent system **9.2/10**. The supported flow remains deterministic, source-backed JSON proposals with named human review, proposal SHA-256 binding, and manifested policy promotion (Telegram, conversational memory, direct active-policy mutation, and unapproved CRM writes stay outside the production boundary — see [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md)). See **Current status** below.
+> **Production readiness — 2026-07-02.** Independent architecture/security reviews score the overall MPS-AI-Agent system **9.3/10**. The supported flow remains deterministic, source-backed JSON proposals with named human review, proposal SHA-256 binding, and manifested policy promotion (Telegram, conversational memory, direct active-policy mutation, and unapproved CRM writes stay outside the production boundary — see [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md)). See **Current status** below.
 
 ## Current status (2026-06-23)
 
-Part of the MPS-AI-Agent system reviewed at **9.2/10** (*pilot-ready, approaching production-ready*); see the companion repo [MPS-AI-Agent-_nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw).
+Part of the MPS-AI-Agent system reviewed at **9.3/10** (2026-07-02; *pilot-ready, approaching production-ready*); see the companion repo [MPS-AI-Agent-_nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw).
 
 - **Cross-platform signed reviewer decisions** — reviewer approvals are Ed25519-signed (`policy_keys`, `sign_decision.py`) and verified at promotion; the earlier Unix `pwd` file-owner check is removed, so review works on Windows/macOS/Linux. Promotion is fail-closed against the signed policy manifest.
 - **CI hardening (all fail closed)** — grype pinned to **v0.114.0** with fresh-DB enforced; syft/grype installers **checksum-verified**; GitHub Actions pinned by commit SHA; CI installs the declared `requirements-crm.txt` set (no test/prod drift); `pip-audit --strict`, SBOM, and gitleaks all green.
