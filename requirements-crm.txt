@@ -2,7 +2,7 @@
 # stack and conflicts with NanoClaw's currently pinned FastAPI test stack.
 fastmcp==3.4.2
 python-dotenv==1.2.2
-cryptography>=42        # Ed25519 policy-manifest signing (policy_keys.py)
+cryptography>=50.0.0        # Ed25519 policy-manifest signing (policy_keys.py)
 
 # Optional CRM adapters. Production constituent workflows keep MCP writes
 # disabled; install only the adapter that has been explicitly approved.
