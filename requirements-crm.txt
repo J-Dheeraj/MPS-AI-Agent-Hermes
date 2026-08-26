@@ -1,7 +1,7 @@
 # Keep Hermes in an isolated environment. FastMCP 3 requires the newer HTTP
 # stack and conflicts with NanoClaw's currently pinned FastAPI test stack.
 fastmcp==3.4.2
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 cryptography>=42        # Ed25519 policy-manifest signing (policy_keys.py)
 
 # Optional CRM adapters. Production constituent workflows keep MCP writes
