@@ -1,136 +1,162 @@
-# MPS-AI-Agent-Hermes — GEPA Skill Engine + Hermes Review App
+# MPS-AI-Agent-Hermes — Governed Policy Pipeline
 
-> **Architecture reconciliation (2026-06-20).** The production policy mechanism is **deterministic, Ed25519-signed JSON policy rules** loaded by the server's `policy_store` from `POLICY_DIR` (manifest + per-rule JSON, validity/supersession/relevance ranking). The legacy "GEPA skill engine" framing and "Markdown SKILL files injected into the prompt" descriptions below are **superseded**: no Markdown skill is injected into letter generation, and proposal generation is deterministic (no LLM converts corrections into policy). "GEPA" persists only as a product name for the deterministic proposal -> human review -> signed promotion pipeline.
+> **Architecture reconciliation (2026-06-20, still current).** The production mechanism is **deterministic, Ed25519-signed JSON policy rules**, not the earlier "GEPA skill engine" / "Markdown SKILL files" design. No LLM is in this pipeline at any stage — proposal generation, review, and promotion are all deterministic. "GEPA" survives only as the product name for the proposal → human review → signed promotion cycle.
 
-Hermes is the **offline policy-change governance subsystem** for the nanoClaw MPS AI agent.
+> **Integration notice (2026-08-25).** [MPS-AI-Agent-_nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw)'s `main` branch was rewritten on 2026-08-24 into a standalone Tauri + React desktop app with **no server and no policy store**. The `policy_store`/`POLICY_DIR` consumer this pipeline promotes signed rules into no longer exists on nanoClaw's `main` — it is preserved only on nanoClaw's `pre-react-rewrite-backup` branch. **This repository's pipeline currently has no live production consumer** unless nanoClaw is deployed from that backup branch. See [Integration status with nanoClaw](#integration-status-with-nanoclaw).
 
-> **Production readiness — 2026-07-02.** Independent architecture/security reviews score the overall MPS-AI-Agent system **9.4/10**. The supported flow remains deterministic, source-backed JSON proposals with named human review, proposal SHA-256 binding, and manifested policy promotion (Telegram, conversational memory, direct active-policy mutation, and unapproved CRM writes stay outside the production boundary — see [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md)). See **Current status** below.
+Hermes is the **offline policy-change governance pipeline** for the MPS AI agent: a deterministic, auditable path from an anonymised correction to a signed, machine-verifiable policy rule, with a mandatory named-human review step in between.
 
-## Current status (2026-07-02)
-
-Part of the MPS-AI-Agent system reviewed at **9.4/10** (2026-07-02; *pilot-ready, approaching production-ready*); see the companion repo [MPS-AI-Agent-_nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw).
-
-- **Cross-platform signed reviewer decisions** — reviewer approvals are Ed25519-signed (`policy_keys`, `sign_decision.py`) and verified at promotion; the earlier Unix `pwd` file-owner check is removed, so review works on Windows/macOS/Linux. Promotion is fail-closed against the signed policy manifest.
-- **CI hardening (all fail closed)** — grype pinned to **v0.114.0** with fresh-DB enforced; syft/grype installers **checksum-verified**; GitHub Actions pinned by commit SHA; CI installs the declared `requirements-crm.txt` set (no test/prod drift); `pip-audit --strict`, SBOM, and gitleaks all green.
-- **Frontend** — `hermes-review-app` on **Vite 6.4.3** (the earlier dev-server advisory is fixed; no scanner exception remains).
-- **Verification:** **14 tests pass**; all CI jobs green.
-
-
-
-It runs **once a week** (Sunday 2am) on the same server, reads vetted policy corrections collected during MPS nights, and updates the SKILL files that guide nanoClaw's letter generation. A **Tauri v2 desktop app** (`hermes-review-app`) provides a human review step — a reviewer sees before/after diffs for every proposed change and approves or rejects each one.
-
-No constituent data ever enters Hermes. Only anonymised, vetter-validated policy corrections (agency name, incorrect claim, correct answer) are used.
-
-> **Parent system:** [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) — the MPS session tool that collects the feedback Hermes consumes.
+- **Reviewed 2026-07-02** as part of the combined MPS-AI-Agent system, scored **9.4/10** at the time — see [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md) for what "production boundary" means and what stays outside it.
+- **Verification:** 14 tests pass across `tests/test_governed_pipeline.py`, `tests/test_promote.py`, `tests/test_promote_signing.py`, `tests/test_crm_approval.py`. CI (`.github/workflows/ci.yml`) runs grype pinned to `v0.114.0` with a checksum-verified installer and a fresh vulnerability DB on every push.
+- **Two things live in this one repository**, and they are not the same system — see [What's actually in this repository](#whats-actually-in-this-repository) before reading further.
 
 ---
 
 ## Table of Contents
 
-1. [What Hermes does — overview](#what-hermes-does--overview)
-2. [GEPA cycle — step by step](#gepa-cycle--step-by-step)
+1. [What's actually in this repository](#whats-actually-in-this-repository)
+2. [The governed policy pipeline — step by step](#the-governed-policy-pipeline--step-by-step)
 3. [Architecture](#architecture)
-4. [SKILL files explained](#skill-files-explained)
-5. [hermes-config.yaml explained](#hermes-configyaml-explained)
-6. [hermes-review-app — Tauri desktop tool](#hermes-review-app--tauri-desktop-tool)
-7. [Installation and setup](#installation-and-setup)
-   - [Server setup](#1-server-setup-runs-on-same-machine-as-mps_server)
-   - [Hermes Review App setup](#2-hermes-review-app-setup)
-   - [Running in development mode](#3-running-in-development-mode)
-   - [Building for production](#4-building-for-production)
-8. [Weekly operation](#weekly-operation)
-9. [Security](#security)
-10. [Project structure](#project-structure)
-11. [Troubleshooting](#troubleshooting)
+4. [The pipeline scripts explained](#the-pipeline-scripts-explained)
+   - [hermes.py — deterministic proposal generation](#hermespy--deterministic-proposal-generation)
+   - [hermes-review-app — the Tauri review tool](#hermes-review-app--the-tauri-review-tool)
+   - [sign_decision.py and policy_keys.py — Ed25519 signing](#sign_decisionpy-and-policy_keyspy--ed25519-signing)
+   - [promote_approved.py — verified promotion](#promote_approvedpy--verified-promotion)
+5. [The optional live-agent mode (outside the production boundary)](#the-optional-live-agent-mode-outside-the-production-boundary)
+   - [profiles/ and hermes-setup.sh](#profiles-and-hermes-setupsh)
+   - [mcp-crm-server.py — the CRM bridge](#mcp-crm-serverpy--the-crm-bridge)
+6. [Installation and setup — governed pipeline](#installation-and-setup--governed-pipeline)
+7. [Operating the pipeline](#operating-the-pipeline)
+8. [Security](#security)
+9. [Project structure](#project-structure)
+10. [Troubleshooting](#troubleshooting)
+11. [Integration status with nanoClaw](#integration-status-with-nanoclaw)
+12. [Important notes](#important-notes)
+13. [References](#references)
+14. [License](#license)
 
 ---
 
-## What Hermes does — overview
+## What's actually in this repository
 
-During MPS nights, volunteers and vetters notice policy errors in the AI's drafts — wrong CPF withdrawal age, outdated HDB grant amounts, incorrect MOM eligibility criteria. They log these corrections in the **Feedback** tab of the Tauri client. Vetters validate each correction before it is accepted.
+This repository has grown two genuinely different subsystems that happen to share a name and a `profiles/` directory. Reading the code makes this unambiguous; reading only the file names does not. Keep them separate in your head:
 
-Hermes reads these corrections once a week and does three things:
+| | **The governed pipeline** | **The live-agent mode** |
+|---|---|---|
+| Purpose | Turn anonymised policy corrections into signed policy rules | Run conversational bots (Telegram) with optional CRM write access |
+| Entry points | `hermes.py`, `hermes-review-app`, `sign_decision.py`, `promote_approved.py` | `hermes-setup.sh`, `profiles/*/config.yaml`, `mcp-crm-server.py` |
+| LLM involved? | **No.** Every stage is deterministic. | Yes — a third-party agent runtime (`hermes-agent`, NousResearch) backed by Ollama. |
+| Touches constituent data? | No — inputs are pre-anonymised, source-cited corrections only. | Potentially yes, if wired to Telegram and a CRM backend. |
+| Status | **Documented, tested, the supported production flow** (see [`PRODUCTION_BOUNDARY.md`](PRODUCTION_BOUNDARY.md)). | **Explicitly outside the production boundary.** Shipped off by default — every template `config.yaml` in this repo has an empty Telegram token and an empty MCP server map. |
 
-1. **Analyses** each correction using Ollama (`llama3.1:8b` for better reasoning at this step) to understand what is wrong in the current SKILL file and what the correct version should say.
-
-2. **Proposes edits** to the relevant SKILL files — these go into a `skills/auto/` staging folder, one `.md` patch file per change.
-
-3. **Presents diffs** to a human reviewer via `hermes-review-app`. The reviewer sees the old text and the proposed new text side by side and clicks Approve or Reject for each change.
-
-Only approved changes are written back to the active SKILL files. nanoClaw loads the updated SKILL files at the next MPS session.
-
-**The key principle:** Hermes improves the system from real-world signal (what was wrong at the last MPS session) but a human always has the final say. Nothing is auto-merged without review.
+This README documents both, but treats the first as the supported system and the second as an optional, higher-risk capability that exists in the repo and must be deliberately turned on. Do not assume "it's in the repo" means "it's part of the reviewed, production-boundary flow" — `PRODUCTION_BOUNDARY.md` says outright that Telegram, conversational memory, and model-directed CRM access are outside it.
 
 ---
 
-## GEPA cycle — step by step
-
-GEPA = Generalised Experience-driven Policy Adaptation.
+## The governed policy pipeline — step by step
 
 ```
-COLLECTION (during MPS night, in nanoClaw)
-------------------------------------------
-1. Volunteer notices the draft says "CPF withdrawal age is 55"
-   but the correct age is 65 for the ordinary account.
-   Volunteer clicks "Log Correction" in the Feedback tab.
-   Fills in:
-     Agency:            CPF
-     Incorrect claim:   "CPF withdrawal age is 55"
-     Correct answer:    "CPF Ordinary Account withdrawal age is 65; full withdrawal at 55 only for retirement sum shortfalls under specific conditions"
+INPUT (produced elsewhere, outside this repo)
+------------------------------------------------
+A feedback batch: a JSON file of pre-anonymised, source-cited corrections.
+Schema (schema_version: 1):
+{
+  "batch_id": "batch-1",
+  "entries": [{
+    "feedback_id": "feedback-1",
+    "agency": "HDB",                       # one of HDB/CPF/MSF/MOH/MOM/ICA/GENERAL
+    "incorrect_claim": "...",
+    "correct_answer": "...",
+    "source": {
+      "title": "HDB policy",
+      "url": "https://www.hdb.gov.sg/policy",   # must be https:// and *.gov.sg
+      "effective_date": "2026-01-01"
+    },
+    "validated_by": "vetter-2",
+    "validated_at": "2026-06-10T00:00:00+00:00"
+  }]
+}
 
-2. Vetter sees this in the validation queue.
-   Vetter confirms the correction is accurate.
-   Clicks "Approve".
-   Status changes to "approved".
-   No case ID, no resident data, no NRIC — fully anonymised.
+STAGE 1 — PROPOSE (deterministic, no LLM)
+--------------------------------------------
+  python3 hermes.py batch.json review/
 
-EXTRACTION (Sunday 2am, automated)
-------------------------------------
-3. Hermes scheduler fires (cron: 0 2 * * 0).
+hermes.py, for each entry:
+  - rejects the whole batch if schema_version != 1
+  - rejects any entry whose agency is not one of the seven valid values
+  - re-screens incorrect_claim/correct_answer for PII (NRIC, email, SG phone,
+    HDB block/unit) even though the batch is supposed to already be clean —
+    defence in depth, not the primary control
+  - requires source.url to be an https://*.gov.sg address with a title and
+    a valid ISO effective_date
+  - writes review/pending/<agency>-<feedback_id>.json — an atomic write
+    (write to a temp file, fsync, then os.replace) so a crash never leaves
+    a half-written proposal on disk
+  - skips (does not overwrite) a proposal that already exists for that id
 
-4. Hermes calls GET /feedback/approved on the nanoClaw server.
-   Gets back the list of approved corrections since the last run.
-   Marks the last-processed timestamp to avoid reprocessing.
+STAGE 2 — REVIEW (human, via hermes-review-app)
+---------------------------------------------------
+  A reviewer opens the Tauri app, selects the folder containing
+  pending/approved/rejected, types a Reviewer ID, and works through the
+  pending queue. For each proposal:
+    - reads the proposal's agency, before/after statement, and cited source
+    - clicks Approve or Reject, optionally with a note (max 2000 chars)
 
-5. For each correction, Hermes:
-   a. Determines which SKILL file is affected (agency -> file mapping).
-   b. Reads the current SKILL file content.
-   c. Calls Ollama (llama3.1:8b or llama3.2:3b) with a prompt:
-        "The current skill file says: [relevant excerpt].
-         The correction says this is wrong: [incorrect_claim].
-         The correct information is: [correct_answer].
-         Generate a minimal edit to fix only the incorrect information.
-         Output: the old paragraph, then the new paragraph."
-   d. Saves the proposed change as a patch file in skills/auto/:
-        skills/auto/2026-06-08_cpf_withdrawal_age.md
+  On a decision, the app (via its Rust backend):
+    - hashes the exact proposal bytes (SHA-256)
+    - moves the proposal file to approved/ or rejected/
+    - writes a `<file>.decision.json` sidecar containing the reviewer id,
+      the decision, the note, the proposal's hash, and a Unix timestamp
+    - refuses if a decision for that proposal already exists (no overwrite)
 
-REVIEW (human reviewer, same day or next day)
------------------------------------------------
-6. Reviewer opens hermes-review-app (Tauri desktop app).
-   Clicks "Open Skills Folder" and selects skills/auto/.
+  There is no Edit action — a reviewer approves or rejects the proposal as
+  written. If the wording needs to change, reject it and have the correction
+  re-submitted.
 
-7. App shows the pending queue — one row per proposed change.
-   Each row shows: agency, date, a summary of what changed.
+STAGE 2b — SIGN (optional in dev, required in production)
+--------------------------------------------------------------
+  On the reviewer's own workstation:
+    python3 -m policy_keys --gen-key reviewer-private.pem   # once, ever
+    python3 sign_decision.py --decision approved/<file>.decision.json \
+        --reviewer-key reviewer-private.pem
 
-8. Reviewer clicks a row to open the Diff view.
-   Left panel: old text (red highlights on removed content).
-   Right panel: new text (green highlights on added content).
+  This adds an Ed25519 signature over the decision's canonical fields
+  (reviewer_id, proposal_sha256, decision, decided_at_unix) to the sidecar.
+  The matching public key must already be registered so promotion can
+  verify it — see REVIEWER_REGISTRY below.
 
-9. Reviewer clicks:
-   - "Approve" -> change is moved from skills/auto/ to skills/ (overwrites active file)
-   - "Reject"  -> patch file is deleted, change is discarded
-   - "Edit"    -> reviewer edits the proposed text before approving
+STAGE 3 — PROMOTE (deterministic, verifies everything)
+------------------------------------------------------------
+  python3 promote_approved.py review/ active-policy/
 
-10. After all reviews:
-    - Approved changes are active in skills/ immediately
-    - Rejected changes are gone
-    - skills/auto/ is now empty
+For every approved/*.json (skipping *.decision.json sidecars), promote_approved.py:
+  - requires a matching .decision.json sidecar to exist at all
+  - requires decision == "approved"
+  - recomputes SHA-256 of the proposal bytes and requires it to match the
+    sidecar's proposal_sha256 — the exact reviewed bytes, not a re-read
+  - requires a non-empty reviewer_id
+  - if REVIEWER_REGISTRY is set, requires that reviewer_id to be registered
+  - if HERMES_ENV=production, additionally requires REVIEWER_REGISTRY to be
+    a reviewer_id -> Ed25519-public-key mapping (not just an allowlist) and
+    verifies the sidecar's signature against that key — an unsigned or
+    wrongly-signed decision is rejected outright
+  - re-validates the proposal's source (https://*.gov.sg, valid date)
+  - writes active-policy/<rule_id>.json: {agency, supersedes: before,
+    statement: after, source, review: {reviewer_id, note, timestamp, hash}}
+  - refuses to silently overwrite an existing rule with different content
+  - regenerates active-policy/manifest.json (schema_version, generated_at,
+    and a sha256 of every active rule file)
+  - if POLICY_SIGNING_KEY is set, signs the manifest with Ed25519 and writes
+    active-policy/manifest.json.sig — the consuming policy_store verifies
+    this signature and refuses to load an unsigned or wrongly-signed
+    manifest when it has been configured with a trusted public key
 
-AT NEXT MPS SESSION
---------------------
-11. nanoClaw reads the updated skills/ files at startup.
-    The letter generation system prompt now includes the corrected policy information.
-    The same mistake will not be made again.
+CONSUMPTION (by a nanoClaw-style server — see the integration notice above)
+---------------------------------------------------------------------------------
+  A server's policy_store loads active-policy/manifest.json, verifies its
+  signature against a trusted public key, verifies every listed rule's
+  hash, and serves the matching rules into letter generation. As of
+  2026-08-25 this consumer does not exist on nanoClaw's `main` branch.
 ```
 
 ---
@@ -138,610 +164,338 @@ AT NEXT MPS SESSION
 ## Architecture
 
 ```
-+-- nanoClaw server (mps_server) ----------------+
-|   GET /feedback/approved                        |
-|   Returns approved corrections since last run   |
-+------------------------------------------------+
-         |
-         | (Sunday 2am, HTTP call on localhost)
-         v
-+-- Hermes engine (Python) ----------------------+
-|   hermes.py                                     |
-|   Reads corrections                             |
-|   Identifies affected SKILL files              |
-|   Calls Ollama to generate minimal edits       |
-|   Writes patch files to skills/auto/           |
-+------------------------------------------------+
-         |
-         | skills/auto/*.md
-         v
-+-- hermes-review-app (Tauri v2) ----------------+
-|   Reviewer opens skills/auto/                   |
-|   Sees list of pending changes                  |
-|   Opens each: diff view (before / after)        |
-|   Clicks Approve or Reject                      |
-|   Approved: moves patch to skills/ (active)     |
-|   Rejected: deletes patch file                  |
-+------------------------------------------------+
-         |
-         | skills/*.md  (updated active files)
-         v
-+-- nanoClaw (next session) ---------------------+
-|   Loads updated SKILL files into system prompt  |
-|   Letter generation now uses correct policy     |
-+------------------------------------------------+
++-- Feedback batch (JSON, produced outside this repo) --------------+
+|   Pre-anonymised, source-cited corrections                        |
++---------------------------------------------------------------------+
+        |
+        | python3 hermes.py batch.json review/
+        v
++-- hermes.py (deterministic — no LLM) --------------------------------+
+|   Schema + agency + PII + gov.sg-source validation                   |
+|   Atomic write of one proposal JSON per entry                        |
++-------------------------------------------------------------------------+
+        |
+        | review/pending/<agency>-<id>.json
+        v
++-- hermes-review-app (Tauri v2, Rust backend) -------------------------+
+|   list_pending / read_proposal / decide_proposal                      |
+|   Reviewer approves or rejects, types a Reviewer ID                   |
+|   Writes review/{approved,rejected}/<id>.json + <id>.json.decision.json|
++-------------------------------------------------------------------------+
+        |
+        | sign_decision.py (reviewer's own machine, Ed25519)
+        v  adds "signature" to the decision sidecar
+        |
+        | python3 promote_approved.py review/ active-policy/
+        v
++-- promote_approved.py (deterministic — verifies hash + signature) ------+
+|   Writes active-policy/<rule_id>.json                                   |
+|   Writes + Ed25519-signs active-policy/manifest.json[.sig]              |
++---------------------------------------------------------------------------+
+        |
+        | active-policy/manifest.json + manifest.json.sig + <rule_id>.json
+        v
++-- A server-side policy_store (POLICY_DIR consumer) -----------------------+
+|   Verifies manifest signature, verifies each rule's hash, serves rules   |
+|   *** Not present on nanoClaw's `main` as of 2026-08-24 — see below ***  |
++------------------------------------------------------------------------------+
 ```
 
 ---
 
-## SKILL files explained
+## The pipeline scripts explained
 
-**Legacy mechanism (superseded).** SKILL files were plain Markdown documents in `skills/`, one per domain. In the supported production path they are **not** injected into letter generation: the server loads deterministic Ed25519-signed JSON policy rules via `policy_store` (`POLICY_DIR`/manifest). The review/promotion tooling now emits and signs JSON policy rules, not Markdown prompt fragments.
+### `hermes.py` — deterministic proposal generation
 
-### File naming
+117 lines. No network access, no LLM call, no dependency beyond the standard library. Its docstring states the design intent directly:
 
-```
-skills/
-  HDB.md               # HDB grants, eligibility, flat types, application process
-  CPF.md               # CPF schemes, withdrawal rules, accounts, Silver Support
-  MSF.md               # ComCare, FSC, CHAS, SSO schemes
-  MOH.md               # MediFund, MedishieldLife, CHAS eligibility, MOH clinics
-  MOM.md               # Employment pass, work permit, MOM appeals, levy waiver
-  ICA.md               # PR/citizenship applications, appeals, travel docs
-  letter-format.md     # 10-part letter structure, tone rules, MP signature block
-  auto/                # Staging folder — proposed changes waiting for review
-    2026-06-08_cpf_withdrawal_age.md
-    2026-06-01_hdb_proximity_grant_quantum.md
-```
+> "This stage is deliberately deterministic. It does not call an LLM and cannot modify active policy."
 
-### SKILL file structure (example: CPF.md)
+Every validation happens before a proposal is written, not after: agency must be one of `HDB/CPF/MSF/MOH/MOM/ICA/GENERAL`; both `incorrect_claim` and `correct_answer` are re-scanned for NRIC/email/SG-phone/HDB-block patterns even though the input is supposed to already be anonymised (defence in depth against a broken upstream export, not the primary control); the source must be an `https://` URL on `gov.sg` or a `*.gov.sg` subdomain, with a non-empty title and a parseable `effective_date`. Any single bad entry raises and aborts the whole batch — there is no partial-success mode.
 
-```markdown
-# CPF SKILL — nanoClaw MPS Agent
+Proposal writes are atomic: write to a temp file in the same directory, `fsync`, then `os.replace`. A process killed mid-write leaves either the old state or nothing — never a half-written proposal.
 
-## Scope
-This file covers CPF-related appeals and enquiries at MPS.
-Use this when: case.agency == "CPF"
+### `hermes-review-app` — the Tauri review tool
 
-## Key schemes and eligibility
+A Tauri v2 app (JavaScript frontend, Rust backend) that does exactly one job: show a pending proposal, record a human decision, move the file. Its own source comment is explicit about what it deliberately does not do:
 
-### CPF Ordinary Account (OA)
-- Members can withdraw OA savings at age 55 to meet the Basic Retirement Sum (BRS)
-- Withdrawal age: 55 (for amounts above the BRS/FRS/ERS threshold)
-- Members who cannot meet the BRS may still withdraw with CPF Board approval
+> "This app intentionally does NOT talk to mps_server or touch any petitioner data — by the time a correction reaches this stage it should already be anonymised down to a 'learning point'... This screen's only job is the human-review gate before a correction is allowed to influence [letter generation]."
 
-### CPF Retirement Sum (as of 2026)
-- Basic Retirement Sum (BRS): $102,900
-- Full Retirement Sum (FRS): $205,800 (2x BRS)
-- Enhanced Retirement Sum (ERS): $308,700 (3x BRS)
-- These figures increase annually — always verify at cpf.gov.sg/retirement-sum
+Rust commands (`hermes-review-app/src-tauri/src/main.rs`):
 
-### Silver Support Scheme
-- Eligibility: Singapore Citizens, age 65+, lower quarter of CPF contributions
-- Quarterly payouts: $600-$1,200 depending on housing type
-- Application: automatic — no application needed for eligible citizens
+| Command | Does |
+|---|---|
+| `list_pending(base_dir)` | Lists `pending/*.json`, returning id, agency, and issue summary for each |
+| `read_proposal(base_dir, file_name)` | Reads one proposal's full detail |
+| `decide_proposal(base_dir, file_name, decision, reviewer_id, reviewer_note)` | Validates `reviewer_id` is 3–100 chars and the note ≤2000 chars, hashes the proposal, moves it to `approved/` or `rejected/`, and atomically writes the `.decision.json` sidecar — refusing outright if a decision already exists for that file |
 
-## Appeals guidance
+The app never opens a network socket — everything is local filesystem access under a canonicalized root (`canonical_root()`), and file names are sanitized before use in any path join.
 
-### When to write a CPF appeal letter
-- Member disagrees with CPF Board's computation
-- Member faces hardship due to inability to meet minimum sum
-- Member requests withdrawal of CPF savings under hardship provision
+### `sign_decision.py` and `policy_keys.py` — Ed25519 signing
 
-### Key grounds for appeal
-1. Financial hardship (medical bills, retrenchment, family circumstances)
-2. Disability or reduced work capacity
-3. Terminal illness
-4. Voluntary contribution disputes
+`policy_keys.py` is the shared crypto module: generate an Ed25519 keypair (`python3 -m policy_keys --gen-key out.pem`), sign bytes, verify a signature, and compute a stable `key_id` (SHA-256 of the raw 32-byte public key) so a verifier can detect a key mismatch before attempting verification.
 
-### Tone notes
-- CPF Board responds to factual, specific appeals
-- Include: NRIC (masked), CPF member number (if known), specific scheme and amount in dispute
-- Avoid: emotional language, vague requests
+`sign_decision.py` is a small CLI a reviewer runs on their own workstation: given a `.decision.json` sidecar and their private key PEM, it signs the sidecar's canonical fields (`reviewer_id`, `proposal_sha256`, `decision`, `decided_at_unix` — reused from `promote_approved.decision_signing_payload()` so the signed content is identical everywhere) and writes the signature into the sidecar in place. This is a deliberate replacement for an earlier design that checked Unix file ownership to authenticate a reviewer — that check silently did nothing on Windows, which is where the review app actually runs.
 
-## Common mistakes to avoid
-- Do not cite outdated retirement sum figures — these change every year
-- Do not promise any outcome — the letter requests consideration, not a guarantee
-- Do not include the resident's full NRIC — use masked format only
-```
+### `promote_approved.py` — verified promotion
 
-### What Hermes changes in SKILL files
+248 lines, and every check in it exists because its absence was a named finding at some point in this repo's history (the inline comments cite them: C2, V3-C4). Promotion:
 
-Hermes makes **minimal, targeted edits** — it does not rewrite the whole file. A typical change:
-
-```diff
- ### CPF Retirement Sum (as of 2026)
--  - Basic Retirement Sum (BRS): $99,400
-+  - Basic Retirement Sum (BRS): $102,900
--  - Full Retirement Sum (FRS): $198,800 (2x BRS)
-+  - Full Retirement Sum (FRS): $205,800 (2x BRS)
-```
-
-The reviewer sees exactly this diff in the `hermes-review-app` diff view.
+1. Requires a `.decision.json` sidecar for every approved proposal, and requires `decision == "approved"`.
+2. Recomputes the proposal's SHA-256 and requires it to match the sidecar — the promoted content is exactly the bytes a human reviewed, not a re-read that could have changed.
+3. Requires a non-empty `reviewer_id`; if `REVIEWER_REGISTRY` is set, requires it to be a known identity.
+4. **In production** (`HERMES_ENV=production`): requires `REVIEWER_REGISTRY` to map identities to Ed25519 public keys (not just an allowlist) and `POLICY_SIGNING_KEY` to be set — refusing to start otherwise — then verifies the decision's signature against the reviewer's registered key.
+5. Re-validates the source URL (still `https://*.gov.sg`, still a valid date) — the check isn't trusted to have survived from stage 1 unchanged.
+6. Writes the active rule and refuses to silently overwrite an existing rule with different content (an identical rewrite is a no-op; a conflicting one is an error).
+7. Regenerates `manifest.json` (every active rule's filename and SHA-256) and, if `POLICY_SIGNING_KEY` is set, signs it and writes `manifest.json.sig`. Without a signing key, the manifest is still written — for development only, and the intended fail-closed behaviour is that a `policy_store` configured with a trusted public key rejects an unsigned manifest.
 
 ---
 
-## `hermes-config.yaml` explained
+## The optional live-agent mode (outside the production boundary)
 
-Located at `groups/mps-volunteers/hermes-config.yaml`:
+Everything in this section is explicitly **not** part of the reviewed, tested pipeline above. It exists in the repository, is off by default in every shipped template, and — per `PRODUCTION_BOUNDARY.md` — is not something the production boundary covers. Read it as documentation of a capability an operator could choose to turn on, with the risks that come with turning it on, not as a description of what runs today.
 
-```yaml
-# hermes-config.yaml
-# Hermes GEPA configuration for the nanoClaw MPS agent
+### `profiles/` and `hermes-setup.sh`
 
-version: 1
+`hermes-setup.sh` installs a **third-party** agent runtime called `hermes-agent` (from NousResearch — an unrelated project that happens to share this repository's name) and configures three profiles for it:
 
-# Where to find the nanoClaw API
-nanoclaw:
-  base_url: "http://127.0.0.1:8000"
-  # Token is fetched at runtime using service account credentials
-  # Credentials stored in ~/.config/hermes/service-account.json
-  # Never hardcode credentials here
+| Profile | Intended purpose | May have a Telegram token? |
+|---|---|---|
+| `mps-main` | MP-facing bot | Yes |
+| `mps-volunteers` | Volunteer-facing bot, letter drafting | Yes |
+| `mps-vetters` | Vetter-facing bot, reviews letter content | **No — never.** `profiles/mps-vetters/config.yaml`'s own header calls itself "offline, production-safe" and ships with an empty token. |
 
-# SKILL files
-skills:
-  active_dir: "skills/"           # Active skill files loaded by nanoClaw
-  staging_dir: "skills/auto/"     # Proposed changes waiting for review
+The setup script's own output is explicit about why: *"Vetters process letter content (constituent data). Telegram is a cloud service. Enabling it here would route constituent data off-premises."* Every shipped `config.yaml` — including `mps-main`'s — has `gateway.telegram.token: ""` and `mcp.servers: {}` out of the box; `mps-main`'s file header states it runs in "OFFLINE SKILL ENGINE MODE" with a comment reading *"DO NOT add bot tokens or CRM access to this config."* Turning any of this into a live bot is a manual, deliberate operator step the script neither performs nor defaults to.
 
-# Agency -> SKILL file mapping
-agency_skill_map:
-  HDB: "skills/HDB.md"
-  CPF: "skills/CPF.md"
-  MSF: "skills/MSF.md"
-  MOH: "skills/MOH.md"
-  MOM: "skills/MOM.md"
-  ICA: "skills/ICA.md"
-  GENERAL: "skills/letter-format.md"
+`profiles/*/hermes-config.yaml` (a separate, older config format under `profiles/mps-volunteers/`) still describes the pre-reconciliation design — an `hermes.py`-polls-`/feedback/approved` flow with a `skill_files` list — and is not read by anything in the current governed pipeline described above. Treat it as a leftover, not documentation of current behaviour.
 
-# Ollama configuration
-ollama:
-  base_url: "http://127.0.0.1:11434"
-  model: "llama3.1:8b"            # Better reasoning for GEPA analysis
-  # llama3.2:3b is acceptable if the server is memory-constrained
-  timeout_seconds: 120
+### `mcp-crm-server.py` — the CRM bridge
 
-# GEPA schedule
-schedule:
-  cron: "0 2 * * 0"              # Every Sunday at 2am
-  timezone: "Asia/Singapore"
+A 1,050-line [Model Context Protocol](https://modelcontextprotocol.io) server exposing six tools to whatever agent connects to it — `lookup_constituent`, `create_case`, `attach_letter`, `update_case_status`, `get_pending_cases`, `get_todays_queue` — backed by a selectable storage backend (`CRM_BACKEND`: `sqlite` by default, or `google_sheets`, `rest_api`, `sharepoint`, `csv`).
 
-# Safety controls
-limits:
-  max_corrections_per_run: 50    # Ignore runs with more corrections (likely a bug)
-  max_skill_file_change_pct: 20  # Reject if Hermes tries to change >20% of a file
-  require_human_review: true     # NEVER auto-merge — always go through hermes-review-app
+Two things are worth knowing if this is ever enabled:
 
-# Logging
-logging:
-  log_file: "logs/hermes.log"
-  level: "INFO"
-```
+- **Writes are disabled by default.** `CRM_WRITE_MODE` must be explicitly set to `approval_required` (the only alternative to `disabled`), and every write tool (`create_case`, `attach_letter`, `update_case_status`) requires an `approval_token` parameter. Tokens are minted out-of-band by `crm_approval.py`, run by a human on a separate, approval-only environment — the agent itself has no tool that can mint one. A token is HMAC-signed over the exact canonical JSON payload it authorizes, expires in 30–900 seconds, and is single-purpose (`action` + `payload_sha256` bound together).
+- **NRIC masking is enforced in the tool itself**, not left to the caller: `create_case` rejects any `constituent_nric` that is not already in masked form (`S****567A`).
 
-**The `require_human_review: true` flag is non-negotiable.** Even if Hermes generates a perfect correction, it goes through `hermes-review-app` before being written to the active SKILL files. There is no auto-merge mode.
+This bridge is not started or wired into anything by default — it is a standalone script an operator would run and connect deliberately.
 
 ---
 
-## `hermes-review-app/` — Tauri desktop tool
+## Installation and setup — governed pipeline
 
-A Tauri v2 + Vite + vanilla JavaScript app for reviewing proposed SKILL file changes. Built to be fast and simple — it does one job: show diffs, get a human decision, apply or discard.
-
-### How it works
-
-```
-+-----------------------------------------------------------+
-|  hermes-review-app window                                 |
-|                                                           |
-|  [Open Skills Folder]   skills/auto/ (3 pending)         |
-|                                                           |
-|  Pending changes:                                         |
-|  +--------------------------------------------------+    |
-|  | CPF.md   | 2026-06-08 | CPF withdrawal age      | [>]|  <- click to review
-|  | HDB.md   | 2026-06-01 | Proximity grant quantum  | [>]|
-|  | MSF.md   | 2026-05-25 | CHAS eligibility income  | [>]|
-|  +--------------------------------------------------+    |
-|                                                           |
-|  +--------------------------+  +------------------------+ |
-|  |  BEFORE (current file)   |  |  AFTER (proposed)      | |
-|  |                          |  |                        | |
-|  |  BRS: $99,400            |  |  BRS: $102,900         | |  <- diff view
-|  |  FRS: $198,800           |  |  FRS: $205,800         | |
-|  |                          |  |                        | |
-|  +--------------------------+  +------------------------+ |
-|                                                           |
-|  [Approve]  [Edit]  [Reject]                             |
-|                                                           |
-+-----------------------------------------------------------+
-```
-
-### Source files
-
-**`src/main.js`** — App entry point
-
-Initialises the app, loads the last-used folder from the Rust store, and renders the main layout (folder selector + change list).
-
-**`src/views/reviewList.js`** — Pending changes list
-
-Reads the contents of the selected `skills/auto/` folder. Each `.md` patch file is parsed to extract:
-- Which SKILL file it modifies (from the patch file header)
-- The date of the correction
-- A one-line summary of the change
-
-Renders a sorted table. Clicking a row opens `diffView.js`.
-
-**`src/views/diffView.js`** — Side-by-side diff view
-
-The core of the app. Given a patch file, it:
-1. Reads the current active SKILL file content (from `skills/`)
-2. Reads the proposed new content (from the patch file)
-3. Renders both side by side with inline character-level diff highlighting:
-   - Removed text in red background
-   - Added text in green background
-4. Shows the full file context around the changed section
-
-Three actions:
-- **Approve:** Overwrites the active SKILL file with the proposed content. Deletes the patch file from `skills/auto/`.
-- **Edit:** Makes the proposed text editable in-place. Reviewer can fix wording before approving.
-- **Reject:** Deletes the patch file. The active SKILL file is unchanged.
-
-**`src/state/store.js`** — App state
-
-Same pub/sub pattern as the nanoClaw client. Tracks: selected folder path, list of pending patches, currently selected patch, review decisions.
-
-#### `src-tauri/src/main.rs` — Rust backend
-
-Tauri v2 commands for filesystem access:
-- `read_skill_files(folder_path)` — reads the `skills/auto/` directory
-- `read_file_content(file_path)` — reads a specific file
-- `write_file_content(file_path, content)` — writes a file (for Approve)
-- `delete_file(file_path)` — deletes a patch file (for Reject)
-- `move_file(from, to)` — moves an approved patch to the active skills folder
-
-#### `src-tauri/capabilities/default.json`
-
-```json
-{
-  "identifier": "default",
-  "description": "Default capabilities for Hermes review app",
-  "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "fs:default",
-    "fs:allow-read-text-file",
-    "fs:allow-write-text-file",
-    "fs:allow-read-dir",
-    "dialog:default",
-    "dialog:allow-open"
-  ]
-}
-```
-
-No network permissions — `hermes-review-app` only reads and writes local files. It cannot make HTTP calls at all.
-
----
-
-## Installation and setup
+This covers the supported pipeline only. Setting up the optional live-agent mode is `hermes-setup.sh`'s job, and that script's own output tells you the manual steps (Telegram tokens, gateway start commands) — see the warnings above before running it.
 
 ### Prerequisites
 
-- Same server as nanoClaw, or any Linux/Windows/macOS machine that can reach the nanoClaw server
-- Python 3.10+ (for the Hermes engine)
-- Ollama running locally with `llama3.1:8b` pulled
-- Node.js 22 + Rust (for building the review app)
-
-### 1. Server setup (runs on same machine as mps_server)
-
 ```bash
-# Clone the repo
-cd ~
-git clone https://github.com/J-Dheeraj/MPS-AI-Agent-Hermes.git hermes
-cd hermes
-
-# Install Python dependencies
-pip3 install -r requirements.txt --user
-
-# Create service account credentials for Hermes to call the nanoClaw API
-mkdir -p ~/.config/hermes
-cat > ~/.config/hermes/service-account.json << 'EOF'
-{
-  "username": "hermes-service",
-  "password": "STRONG_SERVICE_ACCOUNT_PASSWORD"
-}
-EOF
-chmod 600 ~/.config/hermes/service-account.json
-
-# Register the service account in nanoClaw
-# (Run this on the machine where mps_server is running)
-TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login \
-  -d 'username=admin&password=YOUR_ADMIN_PASSWORD' \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-
-curl -X POST http://127.0.0.1:8000/auth/register \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"hermes-service","password":"STRONG_SERVICE_ACCOUNT_PASSWORD","role":"vetter","full_name":"Hermes GEPA Service"}'
-
-# Verify the config file
-cat groups/mps-volunteers/hermes-config.yaml
-# Check that base_url and ollama settings are correct for your machine
-
-# Ensure Ollama has the model Hermes needs
-ollama pull llama3.1:8b
-# If memory is tight, llama3.2:3b works too — edit hermes-config.yaml to match
-
-# Run Hermes manually once to test
-python3 hermes.py --run-once
-# Expected: "Fetched N corrections", "Generated M skill patches", "Written to skills/auto/"
-
-# Set up the cron job (every Sunday at 2am Singapore time)
-crontab -e
-# Add this line:
-# 0 2 * * 0 cd ~/hermes && python3 hermes.py >> logs/hermes.log 2>&1
-
-# Verify the cron is registered
-crontab -l
+git clone https://github.com/J-Dheeraj/MPS-AI-Agent-Hermes.git
+cd MPS-AI-Agent-Hermes
+pip3 install cryptography    # Ed25519 signing/verification (policy_keys.py)
 ```
 
-### 2. Hermes Review App setup
+There is no root `requirements.txt` — the governed pipeline's only third-party dependency is `cryptography`, used for Ed25519. (`requirements-crm.txt` is for the separate CRM bridge above, not this pipeline.)
 
-The review app is used by the human reviewer (typically the vetter lead or the MP's staff manager). It can run on any machine that has access to the `hermes/skills/` folder — either the server itself, or a laptop with the folder mounted via NFS/SMB.
-
-#### Option A: Use a pre-built binary
-
-Download the latest binary from the GitHub Releases page and run it directly.
-
-#### Option B: Build from source
+### Generate a signing key (once)
 
 ```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
+python3 -m policy_keys --gen-key ./policy-signing-key.pem
+# Prints the public key PEM to stdout — distribute this to whatever
+# policy_store will consume the manifest (POLICY_PUBLIC_KEY).
+# The private key is written with mode 600. Never commit it.
+```
 
-# Install Node.js 22 via nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-source ~/.nvm/nvm.sh
-nvm install 22
-nvm use 22
+### Generate a reviewer key (once per reviewer, on the reviewer's own machine)
 
-# Install Tauri system dependencies (Ubuntu 22.04)
-sudo apt-get update
-sudo apt-get install -y \
-  libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev \
-  librsvg2-dev libgtk-3-dev build-essential \
-  gstreamer1.0-plugins-good libgstreamer-plugins-good1.0-0
+```bash
+python3 -m policy_keys --gen-key ./reviewer-private.pem
+```
 
-# Install npm dependencies
-cd hermes/hermes-review-app
+Register the resulting public key under that reviewer's identity in your `REVIEWER_REGISTRY` file — a JSON mapping of `reviewer_id -> Ed25519 public key PEM` for production, or a plain JSON list of ids for unsigned development use.
+
+### Run the pipeline end to end
+
+```bash
+python3 hermes.py batch.json review/
+# -> Created N pending policy proposals
+
+# ... review via hermes-review-app, or manually move a proposal +
+#     write/sign a .decision.json sidecar for testing ...
+
+export REVIEWER_REGISTRY=/path/to/reviewer-registry.json
+export POLICY_SIGNING_KEY=/path/to/policy-signing-key.pem
+export HERMES_ENV=production   # enforces signed-decision verification
+
+python3 promote_approved.py review/ active-policy/
+# -> Promoted M reviewed policy rules
+```
+
+### Build `hermes-review-app`
+
+```bash
+cd hermes-review-app
 npm install
-
-# Build production binary
-npm run tauri build
-# Output: src-tauri/target/release/bundle/
+npm run tauri dev      # development
+npm run tauri build    # production binary, under src-tauri/target/release/
 ```
 
 ---
 
-### 3. Running in development mode
+## Operating the pipeline
 
-```bash
-cd hermes/hermes-review-app
+```
+1. Wherever corrections are collected and vetted, export an approved,
+   anonymised batch as JSON matching the schema in step 1 of the pipeline
+   above. This repository does not produce that export itself — it is the
+   input contract, not a feature of this repo.
 
-source ~/.cargo/env
-fuser -k 1420/tcp 2>/dev/null
+2. Run hermes.py against the batch:
+     python3 hermes.py batch.json review/
 
-npm run tauri dev
+3. Open hermes-review-app, point it at review/, type your Reviewer ID,
+   and work through the pending queue: read each proposal's before/after
+   and cited source, then Approve or Reject.
+
+4. On your own workstation, sign each approved decision:
+     python3 sign_decision.py --decision review/approved/<file>.decision.json \
+         --reviewer-key your-reviewer-private.pem
+
+5. Promote:
+     python3 promote_approved.py review/ active-policy/
+
+6. Point your policy_store's POLICY_DIR at active-policy/ and its
+   POLICY_PUBLIC_KEY at the signing public key from setup. It will refuse
+   to load the manifest if the signature doesn't verify.
 ```
 
-The Tauri window opens. Click **Open Skills Folder** and navigate to `hermes/skills/auto/`.
-
----
-
-### 4. Building for production
-
-```bash
-cd hermes/hermes-review-app
-npm run tauri build
-
-# Linux outputs:
-#   src-tauri/target/release/hermes-review
-#   src-tauri/target/release/bundle/deb/hermes-review_0.1.0_amd64.deb
-```
-
----
-
-## Weekly operation
-
-This is the reviewer's checklist for every Monday morning (after Hermes runs Sunday 2am):
-
-```bash
-# 1. Check that Hermes ran
-tail -50 ~/hermes/logs/hermes.log
-# Expected last lines:
-#   [INFO] Fetched 12 approved corrections
-#   [INFO] Generated 5 skill patches
-#   [INFO] Run complete
-
-# 2. Check what patches were generated
-ls ~/hermes/skills/auto/
-# Example output:
-#   2026-06-08_cpf_brs_amount.md
-#   2026-06-08_hdb_proximity_grant_quantum.md
-#   2026-06-01_msf_comcare_income_ceiling.md
-
-# 3. Open the review app
-./hermes-review           # production binary
-# OR
-cd ~/hermes/hermes-review-app && npm run tauri dev
-
-# 4. Click "Open Skills Folder" -> select ~/hermes/skills/auto/
-
-# 5. For each pending change:
-#    a. Read the diff carefully
-#    b. Verify the correct_answer against the official agency website
-#    c. Click Approve (or Reject if the correction looks wrong)
-#    d. If the wording is right but awkward, click Edit, fix the text, then Approve
-
-# 6. After all reviews, skills/auto/ should be empty
-ls ~/hermes/skills/auto/
-# Expected: empty
-
-# 7. The updated skill files are now active in skills/
-# nanoClaw loads these at the next session automatically
-```
+There is no built-in scheduler, cron entry, or daemon in this repository — steps 2–5 are run manually or wired into whatever automation you build around them.
 
 ---
 
 ## Security
 
 | Control | Implementation |
-|---------|---------------|
-| **No constituent data** | Hermes only receives anonymised corrections (agency + incorrect claim + correct answer). No NRIC, no names, no case content ever enters Hermes. |
-| **Ollama only** | All LLM inference via local Ollama. No Anthropic API key. No cloud calls. |
-| **Service account scoped** | Hermes authenticates to nanoClaw with a dedicated service account that has `vetter` role. It can only read approved feedback — it cannot read cases, letters, or resident records. |
-| **Human review required** | `require_human_review: true` in config. No auto-merge. All changes go through `hermes-review-app` before being applied. |
-| **File-system only** | `hermes-review-app` has no network permissions (no `http:allow-fetch` in capabilities). It only reads and writes local files. |
-| **20% change limit** | Hermes rejects any proposed change that modifies more than 20% of a SKILL file. Protects against a runaway LLM overwriting the whole file. |
-| **Max corrections per run** | Hermes ignores runs with more than 50 corrections (likely a data error). |
-| **Service account credentials outside project** | `~/.config/hermes/service-account.json` is outside the repo, mode `600`. |
-| **Log everything** | All Hermes actions logged to `logs/hermes.log`. |
+|---|---|
+| **No LLM in the pipeline** | `hermes.py` and `promote_approved.py` are pure deterministic Python — no model call, no possibility of a hallucinated policy rule. |
+| **PII re-screened at proposal time** | `hermes.py` scans `incorrect_claim`/`correct_answer` for NRIC, email, SG phone numbers, and HDB block/unit patterns even though the input batch is expected to already be clean — defence in depth. |
+| **Source provenance required** | Every proposal and every promoted rule must cite an `https://` URL on `gov.sg` (or a `*.gov.sg` subdomain), a title, and a valid effective date — checked twice, once at proposal and once at promotion. |
+| **Exact-bytes review binding** | Promotion recomputes the SHA-256 of the proposal file and requires it to match the reviewer's recorded hash — a proposal edited after review is rejected, not silently re-approved. |
+| **Named, optionally signed reviewers** | `reviewer_id` is mandatory; `REVIEWER_REGISTRY` can restrict it to known identities; in `HERMES_ENV=production`, the decision must carry an Ed25519 signature verifiable against that reviewer's registered public key. |
+| **Cross-platform signing, not file-ownership checks** | The reviewer-authentication mechanism was moved from a Unix file-owner check (silently inert on Windows) to Ed25519 signatures, which verify identically everywhere. |
+| **Manifest signed, fail-closed on the consumer side** | `promote_approved.py` signs `manifest.json` with `POLICY_SIGNING_KEY` when set; a consuming `policy_store` configured with the matching public key refuses an unsigned or forged manifest. |
+| **No silent overwrites** | Both proposal generation and promotion refuse to overwrite an existing file with different content — a naming collision is an error, not data loss. |
+| **CRM writes disabled by default, then token-gated** | `CRM_WRITE_MODE=disabled` unless explicitly changed; writes additionally require a short-lived (30–900s), payload-bound HMAC token minted by a human on a separate approval workflow — the agent has no tool to mint its own approval. |
+| **NRIC masking enforced server-side** | `mcp-crm-server.py`'s `create_case` rejects an unmasked NRIC outright, rather than trusting the caller to have masked it. |
+| **CI hardened and fail-closed** | grype pinned to `v0.114.0` with a checksum-verified installer and a forced-fresh vulnerability database (no stale-DB bypass); GitHub Actions pinned by commit SHA; `pip-audit --strict`, SBOM generation, and gitleaks secret scanning all run on every push. |
 
 ---
 
 ## Project structure
 
 ```
-hermes/
+MPS-AI-Agent-Hermes/
 |
-+-- hermes.py                          <- Main GEPA engine
-|   Fetches corrections from nanoClaw
-|   Identifies affected SKILL files
-|   Calls Ollama to generate patch content
-|   Writes patches to skills/auto/
++-- hermes.py                     <- Stage 1: deterministic batch -> pending proposals
++-- promote_approved.py           <- Stage 3: verify + promote approved proposals
++-- sign_decision.py              <- Reviewer-side: Ed25519-sign a decision sidecar
++-- policy_keys.py                <- Shared Ed25519 keygen/sign/verify
 |
-+-- requirements.txt                   <- Python dependencies
++-- hermes-review-app/            <- Stage 2: Tauri v2 review tool
+|   +-- src/main.js                <- UI: pending queue, proposal detail, approve/reject
+|   +-- src-tauri/src/main.rs      <- list_pending / read_proposal / decide_proposal
 |
-+-- groups/
-|   +-- mps-volunteers/
-|       +-- hermes-config.yaml         # All Hermes configuration
-|       +-- skills/
-|           +-- HDB.md                 # Active: HDB policy knowledge
-|           +-- CPF.md                 # Active: CPF policy knowledge
-|           +-- MSF.md                 # Active: MSF/ComCare knowledge
-|           +-- MOH.md                 # Active: MOH/MediFund knowledge
-|           +-- MOM.md                 # Active: MOM/employment knowledge
-|           +-- ICA.md                 # Active: ICA/residency knowledge
-|           +-- letter-format.md       # Active: 10-part letter structure + tone
-|           +-- auto/                  # STAGING: proposed patches waiting for review
-|               +-- 2026-06-08_cpf_brs_amount.md
-|               +-- ...
++-- crm_approval.py               <- Live-agent mode: mint short-lived CRM write tokens
++-- mcp-crm-server.py             <- Live-agent mode: MCP CRM bridge (5 backends)
++-- requirements-crm.txt          <- Deps for the CRM bridge only
++-- .env.example                  <- CRM backend configuration template
 |
-+-- hermes-review-app/                 <- Tauri v2 review app
-|   +-- index.html
-|   +-- package.json
-|   +-- vite.config.js
-|   +-- src/
-|   |   +-- main.js                    # App entry
-|   |   +-- style.css
-|   |   +-- state/
-|   |   |   +-- store.js               # Pub/sub state
-|   |   +-- views/
-|   |       +-- reviewList.js          # List of pending patches
-|   |       +-- diffView.js            # Side-by-side diff + approve/reject
-|   +-- src-tauri/
-|       +-- tauri.conf.json
-|       +-- Cargo.toml
-|       +-- build.rs
-|       +-- capabilities/
-|       |   +-- default.json           # fs + dialog only — no network
-|       +-- icons/
-|       +-- src/
-|           +-- main.rs                # Rust: fs commands + plugin registration
++-- hermes-setup.sh               <- Live-agent mode: installs hermes-agent + 3 profiles
++-- profiles/
+|   +-- mps-main/       config.yaml, SOUL.md      <- MP bot (Telegram-capable)
+|   +-- mps-volunteers/ config.yaml, SOUL.md, hermes-config.yaml (legacy, unused)
+|   +-- mps-vetters/    config.yaml, SOUL.md      <- never gets a Telegram token
 |
-+-- logs/
-|   +-- hermes.log                     <- Append-only Hermes run log
++-- skills/                       <- Markdown policy knowledge for the live-agent mode
+|   +-- SKILL-hdb.md, SKILL-cpf.md, SKILL-msf.md, SKILL-moh.md,
+|       SKILL-mom.md, SKILL-ica.md, SKILL-letter.md, SKILL-feedback.md
 |
-+-- docs/
-    +-- gepa-design.md                 <- GEPA algorithm design doc
++-- tests/
+|   +-- test_governed_pipeline.py  <- End-to-end: batch -> proposal -> decision -> promote
+|   +-- test_promote.py
+|   +-- test_promote_signing.py
+|   +-- test_crm_approval.py
+|
++-- PRODUCTION_BOUNDARY.md        <- What is and isn't the supported flow
++-- OFFLINE-MODE.md               <- The offline-mode rationale for the profiles above
++-- README.md                     <- this file
 ```
+
+`review/` and `active-policy/` are not checked into the repository — they are working directories you create when you run the pipeline (see [Installation and setup](#installation-and-setup--governed-pipeline)).
 
 ---
 
 ## Troubleshooting
 
-**Hermes says "0 corrections fetched" every week**
+**`hermes.py` raises "Unsupported agency" or "Unsafe feedback entry"**
 
-Vetters may not be approving corrections in the nanoClaw Feedback tab. Check:
-1. Are corrections being logged? Open the Feedback tab in the Tauri client.
-2. Are corrections being validated? Vetters need to click Approve in the validation queue.
-3. Is the service account working?
-   ```bash
-   python3 hermes.py --test-connection
-   # Expected: "Connected to nanoClaw at 127.0.0.1:8000 — OK"
-   ```
+The input batch failed validation — this is by design, not a bug. Check that every entry's `agency` is one of `HDB/CPF/MSF/MOH/MOM/ICA/GENERAL`, and that `incorrect_claim`/`correct_answer` contain no NRIC, email, phone number, or block/unit pattern. There is no partial-success mode — fix the batch and re-run.
 
-**Hermes fails with "Connection refused"**
+**`promote_approved.py` raises "Missing decision sidecar"**
 
-The nanoClaw mps_server is not running.
-```bash
-curl http://127.0.0.1:8000/health
-# If this fails, start the server first:
-bash ~/nanoclaw/start-server.sh
-```
+Every file in `approved/` needs a matching `<file>.decision.json` written by `hermes-review-app` (or hand-constructed to match its schema for testing). A proposal moved into `approved/` any other way will fail here.
 
-**`hermes-review-app` shows blank patch list**
+**`promote_approved.py` raises "Proposal hash mismatch"**
 
-The `skills/auto/` folder is empty — either Hermes hasn't run yet this week, or all patches were already reviewed.
-```bash
-ls ~/hermes/skills/auto/
-# If empty, check when Hermes last ran:
-tail -20 ~/hermes/logs/hermes.log
-```
+The proposal file was modified after the sidecar recorded its hash. This is the review-binding control working as intended — re-review the current file rather than promoting stale content.
 
-**A patch looks wrong — LLM generated incorrect content**
+**`promote_approved.py` raises "Decision signature is invalid" or refuses to start in `HERMES_ENV=production`**
 
-Click **Reject** in `hermes-review-app`. The active SKILL file is unchanged. If the correction from the feedback was valid but the LLM misapplied it, you can manually edit the SKILL file directly:
-```bash
-nano ~/hermes/groups/mps-volunteers/skills/CPF.md
-```
+In production mode, `REVIEWER_REGISTRY` must map reviewer ids to Ed25519 public keys (not a plain id list) and `POLICY_SIGNING_KEY` must be set. Run `sign_decision.py` on the reviewer's own machine with their private key before promoting.
 
-**`cargo: command not found` when building the review app**
-```bash
-source ~/.cargo/env
-echo 'source ~/.cargo/env' >> ~/.bashrc
-```
+**`hermes-review-app` shows an empty pending list**
 
-**`libwebkit2gtk-4.1-dev: not found`**
-```bash
-sudo apt-get update
-sudo apt-get install -y gstreamer1.0-plugins-good libgstreamer-plugins-good1.0-0
-sudo dpkg --configure -a
-sudo apt-get install -y libwebkit2gtk-4.1-dev
-```
+`list_pending` only reads `<base_dir>/pending/*.json`. Confirm you selected the folder containing `pending/approved/rejected`, not one of those subfolders directly, and that `hermes.py` actually ran and produced output.
+
+**I ran `hermes-setup.sh` and now have live Telegram bots I didn't mean to fully configure**
+
+The script only creates profiles and copies templates — every shipped config ships with an empty Telegram token, so nothing goes live until you edit a `config.yaml` and add one yourself. If a bot is unexpectedly responding, check `~/.hermes/profiles/*/config.yaml` for a token you (or someone) added, and stop the gateway with `hermes --profile <name> gateway stop`.
+
+---
+
+## Integration status with nanoClaw
+
+As of **2026-08-24**, nanoClaw's `main` branch is a standalone Tauri + React desktop app with no server component. It talks directly to a local Ollama instance for letter drafting and has no `policy_store`, no `POLICY_DIR`, and nothing that reads `active-policy/manifest.json`.
+
+The pipeline in this repository still produces exactly what a `policy_store` like the one nanoClaw previously shipped expects — signed JSON policy rules and a signed manifest — but as of this integration notice, **nothing consumes that output on nanoClaw's `main`**. The consumer exists, unmodified, on nanoClaw's **`pre-react-rewrite-backup`** branch.
+
+Practically, this means:
+
+- If you are running nanoClaw from `main`, this pipeline currently has no effect on letter generation — there is no policy store for it to feed.
+- If you are running nanoClaw from `pre-react-rewrite-backup`, the integration described throughout this README (a server-side `policy_store` loading `active-policy/manifest.json`) still applies as documented.
+- This is not a bug in this repository — Hermes has not changed its contract. The consumer on the other side of that contract moved.
 
 ---
 
 ## Important notes
 
-1. **GEPA improves over time.** After 6 months of consistent feedback logging and weekly review, the SKILL files become very accurate for the specific constituency's most common case types.
+1. **This pipeline makes no judgment about correctness.** It verifies provenance, hashing, and signatures — not whether the *content* of a correction is actually right. A reviewer who approves a wrong-but-well-sourced correction will get it promoted exactly as reviewed. Verify against the cited source before approving, not after.
 
-2. **Verify corrections before approving.** When a correction appears in `hermes-review-app`, always verify the proposed content against the official agency website (cpf.gov.sg, hdb.gov.sg, etc.) before clicking Approve. Policy figures change at Budget and COS — Hermes learns from the vetters, who are human and can also make mistakes.
+2. **There is no automatic scheduling.** Unlike the pre-reconciliation design this README used to describe, nothing in this repository runs on a cron or timer. Steps 2–5 under [Operating the pipeline](#operating-the-pipeline) are run manually or by automation you build yourself.
 
-3. **letter-format.md is the most stable file.** The 10-part letter structure rarely changes. Be conservative about approving changes to this file.
+3. **`skills/*.md` and `profiles/*/hermes-config.yaml` are not part of the governed pipeline.** They belong to the optional live-agent mode and an older, unused config format respectively. Do not expect editing them to affect anything `hermes.py` or `promote_approved.py` does.
 
-4. **Hermes does not learn from rejected feedback.** If a correction is rejected in the nanoClaw validation queue (by a vetter), it never reaches Hermes. If a patch is rejected in `hermes-review-app`, the correction is noted in the log but not reprocessed.
+4. **Rollback is a filesystem operation.** There is no built-in undo for a promoted rule. To retract one, remove its `<rule_id>.json` from `active-policy/`, re-run `promote_approved.py` (which will regenerate and re-sign `manifest.json` from whatever remains), and redeploy the manifest to the consumer.
 
-5. **Back up skill files before a Hermes run.** Hermes backs them up automatically to `skills/backup/YYYY-MM-DD/`, but it is good practice to verify backups exist.
-
-6. **Rollback is simple.** If a bad change slips through, roll back by copying the backup:
-   ```bash
-   cp ~/hermes/groups/mps-volunteers/skills/backup/2026-06-01/CPF.md \
-      ~/hermes/groups/mps-volunteers/skills/CPF.md
-   ```
+5. **A reviewer's private key is that reviewer's sole credential.** There is no password reset — losing it means generating a new keypair and re-registering under `REVIEWER_REGISTRY`, and any decisions already signed with the lost key remain valid (the signature verifies against a key that still existed at signing time).
 
 ---
 
 ## References
 
-- [MPS-AI-Agent-nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) — parent system (mps_server + Tauri client)
+- [PRODUCTION_BOUNDARY.md](PRODUCTION_BOUNDARY.md) — the authoritative statement of what is and isn't the supported flow
+- [OFFLINE-MODE.md](OFFLINE-MODE.md) — rationale for keeping the live-agent profiles offline by default
+- [MPS-AI-Agent-_nanoClaw](https://github.com/J-Dheeraj/MPS-AI-Agent-_nanoClaw) — the system this pipeline's output is designed to feed (see [Integration status](#integration-status-with-nanoclaw) for the current gap)
+- [Model Context Protocol](https://modelcontextprotocol.io) — the protocol `mcp-crm-server.py` implements
 - [Tauri v2 docs](https://v2.tauri.app)
 - [Ollama](https://ollama.com)
 - [HDB](https://www.hdb.gov.sg) | [CPF](https://www.cpf.gov.sg) | [MOM](https://www.mom.gov.sg) | [MOH](https://www.moh.gov.sg) | [MSF](https://www.msf.gov.sg) | [ICA](https://www.ica.gov.sg)
